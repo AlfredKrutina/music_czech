@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Music Guess — Song Guessing Game</title>
+    <meta name="description" content="Guess the song from a tiny audio clip! Heardle-style music quiz using your Spotify or YouTube Music playlists.">
+
+    <!-- Favicon (emoji-based) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCREEN 1: SETUP
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="screen-setup" class="screen active" aria-hidden="false">
+        <div class="container setup-container">
+            <!-- Logo -->
+            <header class="logo-section">
+                <div class="logo-icon">🎵</div>
+                <h1 class="logo-title">Music Guess</h1>
+                <p class="logo-subtitle">Guess the song from a tiny clip!</p>
+            </header>
+
+            <!-- Spotify Client ID -->
+            <section class="card" id="spotify-config">
+                <h3 class="card-title">
+                    <span class="card-icon">🟢</span> Spotify Configuration
+                </h3>
+                <p class="card-desc">
+                    Enter your Client ID from the
+                    <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a>.
+                    <br><small>Only needed for Spotify playlists. YouTube playlists work without this.</small>
+                </p>
+                <div class="input-group">
+                    <input type="text" id="client-id-input"
+                           placeholder="e.g. a1b2c3d4e5f6..."
+                           spellcheck="false"
+                           autocomplete="off">
+                    <button id="save-client-id-btn" class="btn btn-secondary">Save</button>
+                </div>
+                <div id="client-id-status" class="status-text"></div>
+            </section>
+
+            <!-- Playlist URL -->
+            <section class="card">
+                <h3 class="card-title">
+                    <span class="card-icon">📋</span> Load Playlist
+                </h3>
+                <p class="card-desc">Paste a Spotify or YouTube Music playlist URL</p>
+                <div class="input-group">
+                    <input type="url" id="playlist-url-input"
+                           placeholder="https://open.spotify.com/playlist/... or https://music.youtube.com/playlist?list=..."
+                           spellcheck="false"
+                           autocomplete="off">
+                    <button id="load-playlist-btn" class="btn btn-primary">
+                        <span>Load &amp; Play</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Game Options -->
+            <section class="card">
+                <h3 class="card-title">
+                    <span class="card-icon">⚙️</span> Game Options
+                </h3>
+                <div class="options-row">
+                    <label for="rounds-select">Number of rounds:</label>
+                    <select id="rounds-select" class="select-input">
+                        <option value="5">5 rounds</option>
+                        <option value="10" selected>10 rounds</option>
+                        <option value="15">15 rounds</option>
+                        <option value="20">20 rounds</option>
+                    </select>
+                </div>
+            </section>
+
+            <footer class="setup-footer">
+                <p>Built with ♪ — No backend required</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCREEN 2: LOADING
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="screen-loading" class="screen" aria-hidden="true">
+        <div class="container loading-container">
+            <div class="loading-spinner"></div>
+            <h2 class="loading-title">Preparing Your Game</h2>
+            <p id="loading-status" class="loading-status">Connecting...</p>
+
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="loading-progress"></div>
+            </div>
+            <p id="loading-count" class="loading-count"></p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCREEN 3: GAME
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="screen-game" class="screen" aria-hidden="true">
+        <div class="container game-container">
+            <!-- Header bar -->
+            <div class="game-header">
+                <div class="round-info">
+                    Round <span id="current-round">1</span> / <span id="total-rounds">10</span>
+                </div>
+                <div class="score-info">
+                    Score: <span id="current-score" class="score-value">0</span>
+                </div>
+            </div>
+
+            <!-- Play button area -->
+            <div class="player-area">
+                <button id="play-btn" class="play-button" disabled aria-label="Play audio clip">
+                    <span class="play-icon">⏳</span>
+                </button>
+                <div class="duration-label" id="duration-label">500ms</div>
+            </div>
+
+            <!-- Skip dots / attempt indicator -->
+            <div class="skip-dots" id="skip-dots">
+                <!-- Generated by ui.js -->
+            </div>
+
+            <!-- Guess input area -->
+            <div class="guess-area">
+                <div class="autocomplete-container">
+                    <input type="text" id="guess-input"
+                           placeholder="Know it? Type your guess..."
+                           autocomplete="off"
+                           spellcheck="false"
+                           aria-label="Song guess">
+                    <div class="autocomplete-dropdown" id="autocomplete-dropdown" role="listbox">
+                        <!-- Generated by ui.js -->
+                    </div>
+                </div>
+                <div class="guess-buttons">
+                    <button id="submit-btn" class="btn btn-primary btn-guess" disabled>
+                        Submit
+                    </button>
+                    <button id="skip-btn" class="btn btn-secondary btn-skip">
+                        Skip
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCREEN 4: ROUND RESULT
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="screen-result" class="screen" aria-hidden="true">
+        <div class="container result-container">
+            <div id="result-icon" class="result-icon correct">✓</div>
+            <h2 id="result-title" class="result-heading correct">Correct!</h2>
+
+            <div class="result-track-info">
+                <p class="result-track-name" id="result-track-name"></p>
+                <p class="result-track-artist" id="result-track-artist"></p>
+            </div>
+
+            <div id="result-points-container" class="result-points earned">
+                +<span id="result-points">0</span> points
+            </div>
+
+            <button id="next-round-btn" class="btn btn-primary btn-lg">
+                Next Round →
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCREEN 5: GAME SUMMARY
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="screen-summary" class="screen" aria-hidden="true">
+        <div class="container summary-container">
+            <h2 class="summary-title">Game Over!</h2>
+
+            <div class="final-score-section">
+                <div class="final-score-number">
+                    <span id="final-score">0</span>
+                    <span class="score-divider">/</span>
+                    <span id="max-score">60</span>
+                </div>
+                <div id="score-percentage" class="score-percentage">0%</div>
+            </div>
+
+            <div class="rounds-breakdown" id="rounds-breakdown">
+                <!-- Generated by ui.js -->
+            </div>
+
+            <button id="play-again-btn" class="btn btn-primary btn-lg">
+                🔄 Play Again
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HIDDEN: YouTube IFrame Player (positioned off-screen)
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="yt-player-container" class="yt-player-hidden" aria-hidden="true">
+        <div id="yt-player"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         SCRIPTS (order matters — dependencies first)
+         ═══════════════════════════════════════════════════════════════ -->
+    <script src="js/config.js"></script>
+    <script src="js/fuzzy.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/playlist.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
