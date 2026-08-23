@@ -578,10 +578,8 @@ const App = {
 
         let result;
         if (this._selectedTrack) {
-            // User selected a specific track from autocomplete
             result = this.game.submitTrackGuess(this._selectedTrack);
         } else {
-            // Free text guess
             result = this.game.submitGuess(guessText);
         }
 
@@ -589,15 +587,17 @@ const App = {
 
         if (result.correct) {
             SFX.playCorrect();
-            // Correct answer!
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
             UI.showRoundResult(true, lastResult.track, videoId, result.points);
-            this.player.playClip(15000); // Play full clip as celebration
-            this._startAutoPlayTimer();
+            
+            this.player.playClip(15000).then(() => {
+                if (document.getElementById('screen-result').classList.contains('active')) {
+                    this._nextRound();
+                }
+            });
         } else if (result.canContinue) {
             SFX.playWrong();
-            // Wrong, but can still try
             UI.showWrongGuess();
             UI.showToast('Wrong answer! Clip extended.', 'error');
             UI.updateDurationLabel(result.duration);
@@ -606,7 +606,6 @@ const App = {
             const submitBtn = document.getElementById('submit-btn');
             if (submitBtn) submitBtn.disabled = true;
             
-            // Multiple choice specific: color clicked button red and re-enable others
             if (this._lastClickedMcBtn) {
                 this._lastClickedMcBtn.classList.add('wrong');
                 const mcArea = document.getElementById('multiple-choice-area');
@@ -619,12 +618,15 @@ const App = {
             }
         } else {
             SFX.playWrong();
-            // Wrong and no more attempts
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
-            this.player.playClip(15000); // Reveal what it was!
-            this._startAutoPlayTimer();
+            
+            this.player.playClip(15000).then(() => {
+                if (document.getElementById('screen-result').classList.contains('active')) {
+                    this._nextRound();
+                }
+            });
         }
     },
 
@@ -639,46 +641,33 @@ const App = {
             UI.showToast(`Clip extended to ${this._formatDuration(result.duration)}`, 'info');
         } else {
             SFX.playWrong();
-            // No more skips — failed
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
-            this.player.playClip(15000); // Reveal what it was!
-            this._startAutoPlayTimer();
+            
+            this.player.playClip(15000).then(() => {
+                if (document.getElementById('screen-result').classList.contains('active')) {
+                    this._nextRound();
+                }
+            });
         }
     },
 
     // ─── Round Transitions ───────────────────────────────────────────
 
-    _startAutoPlayTimer() {
-        if (this._autoPlayTimer) clearInterval(this._autoPlayTimer);
-        const indicator = document.getElementById('auto-next-indicator');
-        const countdownSpan = document.getElementById('auto-next-countdown');
-        if (indicator) indicator.style.display = 'block';
-        
-        let secondsLeft = 3;
-        if (countdownSpan) countdownSpan.textContent = secondsLeft;
-        
-        this._autoPlayTimer = setInterval(() => {
-            secondsLeft--;
-            if (countdownSpan) countdownSpan.textContent = secondsLeft;
-            
-            if (secondsLeft <= 0) {
-                clearInterval(this._autoPlayTimer);
-                if (indicator) indicator.style.display = 'none';
-                this._nextRound();
-            }
-        }, 1000);
-    },
-
     async _nextRound() {
-        if (this._autoPlayTimer) clearInterval(this._autoPlayTimer);
+        if (this._isTransitioning) return;
+        this._isTransitioning = true;
+        
+        this.player.stop();
+        
         if (this.game.nextRound()) {
             await this._startRound();
         } else {
-            this.player.stop();
             this._showSummary();
         }
+        
+        this._isTransitioning = false;
     },
 
     _showSummary() {
