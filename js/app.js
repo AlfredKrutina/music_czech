@@ -1,7 +1,7 @@
 /**
  * app.js — Main application orchestrator.
  *
- * Wires together all modules: Auth, PlaylistLoader, YouTubeSearch,
+ * Wires together all modules: Auth, MusicFetcher, YouTubeSearch,
  * AudioPlayer, Game, FuzzySearch, and UI.
  *
  * Self-initializes on DOMContentLoaded.
@@ -194,7 +194,7 @@ const App = {
             return;
         }
 
-        const platform = PlaylistLoader.detectPlatform(url);
+        const platform = MusicFetcher.detectPlatform(url);
         if (!platform) {
             UI.showToast('Unsupported URL. Use Spotify or YouTube Music playlist links.', 'error');
             return;
@@ -221,7 +221,7 @@ const App = {
 
         try {
             // Step 1: Fetch playlist tracks
-            const tracks = await PlaylistLoader.loadPlaylist(url, (current, total, msg) => {
+            const tracks = await MusicFetcher.loadPlaylist(url, (current, total, msg) => {
                 UI.updateLoadingProgress(current, total, msg);
             });
 

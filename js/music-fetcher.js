@@ -6,7 +6,7 @@
  *   - YouTube / YouTube Music playlists (via Invidious/Piped, no auth needed)
  *   - Apple Music playlists (via CORS proxy + JSON-LD extraction, no auth needed)
  */
-const PlaylistLoader = {
+const MusicFetcher = {
     /**
      * Detect the platform from a URL string.
      * @returns {'spotify'|'youtube'|'apple'|null}
@@ -107,7 +107,7 @@ const PlaylistLoader = {
         return data.tracks.map((t, idx) => ({
             name: t.name,
             artist: t.artist,
-            id: `spotify-${playlistId}-${idx}`, // Mock ID
+            id: `spotify-${parsed.id}-${idx}`, // Mock ID
             displayName: `${t.artist} — ${t.name}`
         }));
     },
