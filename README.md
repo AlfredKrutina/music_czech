@@ -1,16 +1,38 @@
 # 🎵 Music Guess — Song Guessing Game
 
+**Play it live right now:** 👉 **[https://alfredkrutina.github.io/music_czech/](https://alfredkrutina.github.io/music_czech/)** 👈
+
 A **Heardle-style** music guessing game that plays short audio clips (0.5s → 16s) from your playlists. Built as a 100% frontend static app with a local proxy.
 
 ![Screenshot](https://img.shields.io/badge/status-ready-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue)
 
-## 🚀 Quick Start
+## 🎮 How to Play
+
+1. **Load a Playlist** — Paste any public Spotify, Apple Music, or YouTube Music playlist URL. *(Note: Apple Music requires running the game locally with the provided python proxy server).*
+2. **Listen to the snippet** — Click play to hear a tiny slice of the song. It starts at just **500ms**! The game automatically skips silent video intros to make sure you hear the actual music.
+3. **Guess the song** — Type the song name or artist into the search box. The game will autocomplete from tracks in your playlist. Select your answer and hit submit.
+4. **Skip for more time** — If you don't know it, you can skip to hear a longer clip. Each skip extends the clip length: `0.5s → 1s → 2s → 4s → 8s → 16s`.
+5. **The Reveal** — Whether you get it right or run out of attempts, the game will reveal the album art and full song name in a clean pop-in animation, and play a longer snippet of the song for you to enjoy.
+
+### Scoring
+
+| Attempt | Duration  | Points |
+|---------|-----------|--------|
+| 1st     | 0.5s      | 6      |
+| 2nd     | 1.0s      | 5      |
+| 3rd     | 2.0s      | 4      |
+| 4th     | 4.0s      | 3      |
+| 5th     | 8.0s      | 2      |
+| 6th     | 16.0s     | 1      |
+| Failed  | —         | 0      |
+
+## 🚀 Run Locally
 
 ### 1. Clone or download this project
 
 ```bash
-git clone <your-repo-url> music-guess
-cd music-guess
+git clone https://github.com/AlfredKrutina/music_czech.git
+cd music_czech
 ```
 
 ### 2. Start a local HTTP server
@@ -55,28 +77,7 @@ To load Spotify playlists, you need a **free** Spotify Developer Client ID:
 7. Paste it into the game's setup screen and click **Save**
 
 > 💡 For GitHub Pages, also add your Pages URL as a redirect URI:
-> `https://yourusername.github.io/your-repo/callback.html`
-
----
-
-## 🎮 How to Play
-
-1. **Load a Playlist** — Paste a Spotify, Apple Music, or YouTube Music playlist URL.
-2. **Listen to the clip** — starts at just 500ms!
-3. **Guess the song** — use the autocomplete to lock in your answer.
-4. **Skip for more** — each skip extends the clip (0.5s → 1s → 2s → 4s → 8s → 16s)
-
-### Scoring
-
-| Attempt | Duration  | Points |
-|---------|-----------|--------|
-| 1st     | 0.5s      | 6      |
-| 2nd     | 1.0s      | 5      |
-| 3rd     | 2.0s      | 4      |
-| 4th     | 4.0s      | 3      |
-| 5th     | 8.0s      | 2      |
-| 6th     | 16.0s     | 1      |
-| Failed  | —         | 0      |
+> `https://alfredkrutina.github.io/music_czech/callback.html`
 
 ---
 
