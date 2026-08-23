@@ -333,6 +333,8 @@ const PlaylistLoader = {
 
         // ── Step 1: Try Cloudflare Worker (primary, reliable) ──────────────
         const workerUrl = CONFIG.APPLE_MUSIC_WORKER_URL;
+        let proxyReturned404 = false;
+        
         if (workerUrl && workerUrl.trim()) {
             if (onProgress) onProgress(0, 0, 'Connecting to proxy...');
             try {
@@ -351,6 +353,8 @@ const PlaylistLoader = {
                          text.includes('MusicPlaylist'))) {
                         html = text;
                     }
+                } else if (response.status === 404 || response.status === 403) {
+                    proxyReturned404 = true;
                 }
             } catch (e) {
                 console.warn('Cloudflare Worker proxy failed:', e.message);
@@ -407,6 +411,13 @@ const PlaylistLoader = {
 
         // ── No proxy worked ────────────────────────────────────────────────
         if (!html) {
+            if (proxyReturned404) {
+                throw new Error(
+                    'Apple Music returned 404/403 Not Found.\n\n' +
+                    'This means the playlist is either private, deleted, or the URL is incorrect.\n' +
+                    'Please make sure the playlist is public and try again.'
+                );
+            }
             if (!workerUrl || !workerUrl.trim()) {
                 // Worker not configured — give actionable setup instructions
                 throw new Error(
