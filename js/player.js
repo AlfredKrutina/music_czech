@@ -172,6 +172,14 @@ class AudioPlayer {
             this._loadReject = null;
             reject(new Error(message));
         }
+        
+        // Reject any pending clip play
+        if (this._clipReject) {
+            const reject = this._clipReject;
+            this._clipResolve = null;
+            this._clipReject = null;
+            reject(new Error(message));
+        }
 
         // Notify external error handler
         if (this._errorCallback) {
@@ -272,7 +280,7 @@ class AudioPlayer {
      * @returns {Promise<void>} Resolves when the clip finishes playing
      */
     playClip(durationMs, startMode = 'beginning') {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (!this._ready || !this._player) {
                 resolve();
                 return;
@@ -282,6 +290,7 @@ class AudioPlayer {
             this._cancelClip();
 
             this._clipResolve = resolve;
+            this._clipReject = reject;
             
             // Store the duration so _onStateChange can start the timer 
             // exactly when the audio starts (bypassing buffering delays).
@@ -349,6 +358,7 @@ class AudioPlayer {
         if (this._clipResolve) {
             const res = this._clipResolve;
             this._clipResolve = null;
+            this._clipReject = null;
             res();
         }
     }

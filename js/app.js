@@ -588,10 +588,14 @@ const App = {
         if (result.correct) {
             SFX.playCorrect();
             const lastResult = this.game.results[this.game.results.length - 1];
-            const videoId = this._searchedVideos.get(this.game.currentRound - 1);
+            const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(true, lastResult.track, videoId, result.points);
             
             this.player.playClip(15000).then(() => {
+                if (document.getElementById('screen-result').classList.contains('active')) {
+                    this._nextRound();
+                }
+            }).catch(() => {
                 if (document.getElementById('screen-result').classList.contains('active')) {
                     this._nextRound();
                 }
@@ -619,10 +623,14 @@ const App = {
         } else {
             SFX.playWrong();
             const lastResult = this.game.results[this.game.results.length - 1];
-            const videoId = this._searchedVideos.get(this.game.currentRound - 1);
+            const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             
             this.player.playClip(15000).then(() => {
+                if (document.getElementById('screen-result').classList.contains('active')) {
+                    this._nextRound();
+                }
+            }).catch(() => {
                 if (document.getElementById('screen-result').classList.contains('active')) {
                     this._nextRound();
                 }
@@ -642,10 +650,14 @@ const App = {
         } else {
             SFX.playWrong();
             const lastResult = this.game.results[this.game.results.length - 1];
-            const videoId = this._searchedVideos.get(this.game.currentRound - 1);
+            const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             
             this.player.playClip(15000).then(() => {
+                if (document.getElementById('screen-result').classList.contains('active')) {
+                    this._nextRound();
+                }
+            }).catch(() => {
                 if (document.getElementById('screen-result').classList.contains('active')) {
                     this._nextRound();
                 }
@@ -660,6 +672,7 @@ const App = {
         this._isTransitioning = true;
         
         this.player.stop();
+        UI.clearBlurredBackground();
         
         if (this.game.nextRound()) {
             await this._startRound();
