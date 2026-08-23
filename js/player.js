@@ -190,13 +190,15 @@ class AudioPlayer {
      * Fetch SponsorBlock data to skip non-music intros.
      * @private
      */
-    async _getMusicStartTime(videoId) {
+    async _getSponsorBlockData(videoId) {
+        let startSeconds = 0;
+        let highlightSeconds = null;
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 2000); // 2s max wait for SponsorBlock
+            const timeout = setTimeout(() => controller.abort(), 2000);
             
             const res = await fetch(
-                `https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=["music_offtopic"]`,
+                `https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=["music_offtopic","poi_highlight"]`,
                 { signal: controller.signal }
             );
             clearTimeout(timeout);
@@ -204,16 +206,17 @@ class AudioPlayer {
             if (res.ok) {
                 const data = await res.json();
                 for (const segment of data) {
-                    // If the non-music segment starts near the beginning of the video
-                    if (segment.segment && segment.segment[0] <= 5) {
-                        return segment.segment[1];
+                    if (segment.category === 'music_offtopic' && segment.segment && segment.segment[0] <= 5) {
+                        startSeconds = segment.segment[1];
+                    }
+                    if (segment.category === 'poi_highlight' && segment.segment) {
+                        highlightSeconds = segment.segment[0];
                     }
                 }
             }
-        } catch (e) {
-            // Ignore errors (e.g., timeout or no segments found)
-        }
-        return 0;
+        } catch (e) {}
+        
+        return { startSeconds, highlightSeconds };
     }
 
     /**
@@ -226,11 +229,12 @@ class AudioPlayer {
             throw new Error('Player not initialized');
         }
 
-        // Find true start time (skipping intros)
-        const startSeconds = await this._getMusicStartTime(videoId);
+        // Find true start time and chorus highlight
+        const { startSeconds, highlightSeconds } = await this._getSponsorBlockData(videoId);
         
         this._currentVideoId = videoId;
         this._currentStartSeconds = startSeconds;
+        this._currentHighlightSeconds = highlightSeconds;
 
         return new Promise((resolve, reject) => {
             this._loadResolve = resolve;
@@ -264,10 +268,10 @@ class AudioPlayer {
      * Play a clip of the currently loaded video for exactly `durationMs` milliseconds.
      * Seeks to true start, plays, then pauses after the duration.
      * @param {number} durationMs - Clip duration in milliseconds
-     * @param {boolean} isHardcore - If true, play from a random offset
+     * @param {string} startMode - 'beginning', 'chorus', or 'random'
      * @returns {Promise<void>} Resolves when the clip finishes playing
      */
-    playClip(durationMs, isHardcore = false) {
+    playClip(durationMs, startMode = 'beginning') {
         return new Promise((resolve) => {
             if (!this._ready || !this._player) {
                 resolve();
@@ -285,13 +289,21 @@ class AudioPlayer {
 
             // Seek to true start of the music (skipping intros)
             let start = this._currentStartSeconds || 0;
+            const totalDur = this._player.getDuration() || 0;
             
-            if (isHardcore) {
-                const totalDur = this._player.getDuration() || 0;
+            if (startMode === 'random') {
                 const minStart = start + 30; // skip intro
                 const maxStart = totalDur - (durationMs / 1000) - 5; // leave buffer at the end
                 if (maxStart > minStart) {
                     start = minStart + Math.random() * (maxStart - minStart);
+                }
+            } else if (startMode === 'chorus') {
+                // If SponsorBlock gave us a highlight, use it!
+                if (this._currentHighlightSeconds) {
+                    start = this._currentHighlightSeconds;
+                } else if (totalDur > 45) {
+                    // Fallback to 33% of the song if no highlight is found
+                    start = totalDur * 0.33;
                 }
             }
             

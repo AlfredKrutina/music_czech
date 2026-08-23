@@ -104,10 +104,12 @@
                     </select>
                 </div>
                 <div class="options-row" style="margin-top: 0.5rem;">
-                    <label class="checkbox-label" title="Play a random part of the song instead of the beginning">
-                        <input type="checkbox" id="hardcore-mode-checkbox">
-                        Hardcore Mode (Random offset)
-                    </label>
+                    <label for="start-pos-select" title="Choose where the song starts playing">Start Position:</label>
+                    <select id="start-pos-select" class="select-input">
+                        <option value="beginning" selected>Beginning (Default)</option>
+                        <option value="chorus">Chorus (Highlight or 33%)</option>
+                        <option value="random">Random (Hardcore)</option>
+                    </select>
                 </div>
                 <div class="options-row" style="margin-top: 0.5rem;">
                     <label class="checkbox-label" title="Choose from a grid of options instead of typing">

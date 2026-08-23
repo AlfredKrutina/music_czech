@@ -430,12 +430,11 @@ const App = {
 
         const durationMs = this.game.getCurrentDurationMs();
         
-        // Check hardcore mode
-        const hardcoreCheckbox = document.getElementById('hardcore-mode-checkbox');
-        const isHardcore = hardcoreCheckbox ? hardcoreCheckbox.checked : false;
+        const startPosSelect = document.getElementById('start-pos-select');
+        const startMode = startPosSelect ? startPosSelect.value : 'beginning';
 
         try {
-            await this.player.playClip(durationMs, isHardcore);
+            await this.player.playClip(durationMs, startMode);
         } catch (e) {
             console.error('Playback error:', e);
             UI.showToast('Playback failed. Try again.', 'error');
