@@ -82,75 +82,31 @@ const PlaylistLoader = {
             throw new Error('Could not extract playlist ID from the Spotify URL.');
         }
 
-        // Ensure we have a valid token
-        let token = SpotifyAuth.getToken();
-        if (!token) {
-            if (onProgress) onProgress(0, 0, 'Authenticating with Spotify...');
-            await SpotifyAuth.authenticate();
-            token = SpotifyAuth.getToken();
-        }
-        if (!token) {
-            throw new Error('Failed to obtain Spotify access token.');
+        if (onProgress) onProgress(0, 0, 'Fetching Spotify playlist...');
+
+        const proxyUrl = `${CONFIG.WORKER_URL}/spotify?id=${encodeURIComponent(playlistId)}`;
+        const response = await fetch(proxyUrl);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Spotify playlist. Make sure the playlist is public.`);
         }
 
-        const tracks = [];
-        let offset = 0;
-        const limit = 100;
-        let total = null;
-
-        while (true) {
-            const apiUrl = `${CONFIG.SPOTIFY.API_BASE}/playlists/${playlistId}/tracks` +
-                `?offset=${offset}&limit=${limit}` +
-                `&fields=${encodeURIComponent('total,items(track(name,artists(name),id,duration_ms))')}`;
-
-            const response = await fetch(apiUrl, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.status === 401) {
-                SpotifyAuth.logout();
-                throw new Error('Spotify token expired. Please try again to re-authenticate.');
-            }
-            if (response.status === 429) {
-                const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
-                if (onProgress) onProgress(tracks.length, total || 100, `Spotify rate limit. Waiting ${retryAfter}s...`);
-                await new Promise(r => setTimeout(r, retryAfter * 1000));
-                continue; // Retry the same offset
-            }
-            if (response.status === 404) {
-                throw new Error('Playlist not found. Check the URL and make sure the playlist is public or you have access.');
-            }
-            if (!response.ok) {
-                throw new Error(`Spotify API error: ${response.status} ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            if (total === null) total = data.total || 0;
-
-            for (const item of (data.items || [])) {
-                if (!item.track || !item.track.name) continue;
-                if (item.track.is_local) continue; // Skip local files
-
-                const artist = item.track.artists.map(a => a.name).join(', ');
-                tracks.push({
-                    name: item.track.name,
-                    artist: artist,
-                    id: item.track.id,
-                    displayName: `${artist} — ${item.track.name}`
-                });
-            }
-
-            if (onProgress) onProgress(tracks.length, total, 'Fetching playlist tracks...');
-
-            offset += limit;
-            if (offset >= total || (data.items || []).length === 0) break;
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(`Spotify error: ${data.error}`);
         }
-
-        if (tracks.length === 0) {
+        
+        if (!data.tracks || data.tracks.length === 0) {
             throw new Error('The playlist is empty or all tracks are unavailable.');
         }
 
-        return tracks;
+        return data.tracks.map((t, idx) => ({
+            name: t.name,
+            artist: t.artist,
+            id: `spotify-${playlistId}-${idx}`, // Mock ID
+            displayName: `${t.artist} — ${t.name}`
+        }));
     },
 
     // ─── YouTube / YouTube Music ─────────────────────────────────────

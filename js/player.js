@@ -264,9 +264,10 @@ class AudioPlayer {
      * Play a clip of the currently loaded video for exactly `durationMs` milliseconds.
      * Seeks to true start, plays, then pauses after the duration.
      * @param {number} durationMs - Clip duration in milliseconds
+     * @param {boolean} isHardcore - If true, play from a random offset
      * @returns {Promise<void>} Resolves when the clip finishes playing
      */
-    playClip(durationMs) {
+    playClip(durationMs, isHardcore = false) {
         return new Promise((resolve) => {
             if (!this._ready || !this._player) {
                 resolve();
@@ -283,7 +284,17 @@ class AudioPlayer {
             this._pendingClipDuration = durationMs;
 
             // Seek to true start of the music (skipping intros)
-            const start = this._currentStartSeconds || 0;
+            let start = this._currentStartSeconds || 0;
+            
+            if (isHardcore) {
+                const totalDur = this._player.getDuration() || 0;
+                const minStart = start + 30; // skip intro
+                const maxStart = totalDur - (durationMs / 1000) - 5; // leave buffer at the end
+                if (maxStart > minStart) {
+                    start = minStart + Math.random() * (maxStart - minStart);
+                }
+            }
+            
             this._player.seekTo(start, true);
             this._player.unMute();
             this._player.setVolume(100);

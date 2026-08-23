@@ -6,6 +6,29 @@
  *
  * Self-initializes on DOMContentLoaded.
  */
+
+// Simple Seeded PRNG (Linear Congruential Generator)
+let _globalSeed = 0;
+Math.setSeed = function(s) {
+    // Generate a simple numeric seed from string if needed
+    let numericSeed = 0;
+    if (typeof s === 'string') {
+        for (let i = 0; i < s.length; i++) {
+            numericSeed = (numericSeed << 5) - numericSeed + s.charCodeAt(i);
+            numericSeed |= 0;
+        }
+    } else {
+        numericSeed = s;
+    }
+    
+    _globalSeed = numericSeed;
+    // Override Math.random globally for this session
+    Math.random = function() {
+        _globalSeed = (_globalSeed * 9301 + 49297) % 233280;
+        return _globalSeed / 233280;
+    };
+};
+
 const App = {
     player: null,
     game: null,
@@ -23,7 +46,39 @@ const App = {
         UI.init((url) => this._loadPlaylist(url));
         this._bindEvents();
         this._registerGlobalErrorHandler();
-        UI.showScreen('screen-setup');
+
+        // Check for URL parameters (Challenge / Daily Mode)
+        const urlParams = new URLSearchParams(window.location.search);
+        let seedParam = urlParams.get('seed');
+        const playlistParam = urlParams.get('playlist');
+        const hardcoreParam = urlParams.get('hardcore');
+        const mcParam = urlParams.get('mc');
+
+        // Always use a seed so games can be shared later
+        if (!seedParam) {
+            seedParam = Math.floor(Math.random() * 90000) + 10000;
+        }
+        Math.setSeed(seedParam);
+        this._currentSeed = seedParam; // Store for sharing
+
+        if (playlistParam) {
+            // Apply game option params if present
+            if (hardcoreParam === '1') {
+                const hcCheckbox = document.getElementById('hardcore-mode-checkbox');
+                if (hcCheckbox) hcCheckbox.checked = true;
+            }
+            if (mcParam === '1') {
+                const mcCheckbox = document.getElementById('multiple-choice-checkbox');
+                if (mcCheckbox) mcCheckbox.checked = true;
+            }
+            
+            // Wait a tiny bit for UI to settle, then load the playlist
+            setTimeout(() => {
+                this._loadPlaylist(playlistParam);
+            }, 100);
+        } else {
+            UI.showScreen('screen-setup');
+        }
 
         // Pre-initialize YouTube player (non-blocking)
         this.player.init().catch(e => {
@@ -51,13 +106,9 @@ const App = {
 
     _bindEvents() {
         // --- Setup screen ---
-        this._on('save-client-id-btn', 'click', () => this._saveClientId());
         this._on('load-playlist-btn', 'click', () => this._loadPlaylist());
         this._on('playlist-url-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._loadPlaylist();
-        });
-        this._on('client-id-input', 'keydown', (e) => {
-            if (e.key === 'Enter') this._saveClientId();
         });
 
         // --- Game screen ---
@@ -92,6 +143,8 @@ const App = {
         this._on('next-round-btn', 'click', () => this._nextRound());
         this._on('next-round-btn-inline', 'click', () => this._nextRound());
         this._on('play-again-btn', 'click', () => this._playAgain());
+        this._on('share-btn', 'click', () => this._shareResult());
+        this._on('daily-challenge-btn', 'click', () => this._playDailyChallenge());
     },
 
     /** Helper to bind an event listener by element ID */
@@ -102,23 +155,32 @@ const App = {
 
     // ─── Setup Screen Actions ────────────────────────────────────────
 
-    _saveClientId() {
-        const input = document.getElementById('client-id-input');
-        const clientId = input ? input.value.trim() : '';
-
-        if (!clientId) {
-            UI.showClientIdError('Please enter a Client ID');
-            return;
-        }
-        if (clientId.length < 10) {
-            UI.showClientIdError('Client ID seems too short — check the Spotify dashboard');
-            return;
-        }
-
-        SpotifyAuth.setClientId(clientId);
-        UI.showClientIdSaved();
-        UI.showToast('Client ID saved!', 'success');
+    _playDailyChallenge() {
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const seed = parseInt(dateStr, 10);
+        
+        Math.setSeed(seed);
+        this._currentSeed = seed;
+        
+        // Use Global Hits or 2010s as the daily challenge playlist
+        const dailyUrl = "https://music.apple.com/us/playlist/2010s-hits-essentials/pl.80164c06fc29415cb62112a201c13bc3";
+        
+        // Force 10 rounds
+        const roundsSelect = document.getElementById('rounds-select');
+        if (roundsSelect) roundsSelect.value = "10";
+        
+        // Disable hardcore/multiple choice to keep it fair for everyone
+        const hcCheckbox = document.getElementById('hardcore-mode-checkbox');
+        if (hcCheckbox) hcCheckbox.checked = false;
+        
+        const mcCheckbox = document.getElementById('multiple-choice-checkbox');
+        if (mcCheckbox) mcCheckbox.checked = false;
+        
+        this._loadPlaylist(dailyUrl);
     },
+
+
 
     async _loadPlaylist(predefinedUrl = null) {
         const url = predefinedUrl || UI.getPlaylistUrl();
@@ -149,6 +211,12 @@ const App = {
             UI.setCancelButton(false);
             UI.showToast('Loading cancelled.', 'info');
         });
+
+        UI.setCancelButton(true);
+        this._loadingCancelled = false;
+        
+        // Store the url for sharing
+        this._currentPlaylistUrl = url;
 
         try {
             // Step 1: Fetch playlist tracks
@@ -251,6 +319,7 @@ const App = {
         if (!track) return;
 
         this._selectedTrack = null;
+        this._mcOptions = null;
 
         // Update UI
         UI.showScreen('screen-game');
@@ -259,6 +328,29 @@ const App = {
         UI.updateDurationLabel(this.game.getCurrentDuration());
         UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
         UI.resetGuessInput();
+        
+        // Setup Multiple Choice Mode
+        const mcCheckbox = document.getElementById('multiple-choice-checkbox');
+        const isMultipleChoice = mcCheckbox ? mcCheckbox.checked : false;
+        UI.toggleMultipleChoiceMode(isMultipleChoice);
+        
+        if (isMultipleChoice) {
+            // Generate options only once per round
+            if (!this._mcOptions) {
+                const options = [track];
+                const pool = this.game.playlist.filter(t => t.id !== track.id);
+                pool.sort(() => 0.5 - Math.random());
+                options.push(...pool.slice(0, 7));
+                options.sort(() => 0.5 - Math.random());
+                this._mcOptions = options;
+            }
+            
+            UI.renderMultipleChoice(this._mcOptions, (selectedTrack, btnElement) => {
+                this._selectedTrack = selectedTrack;
+                this._lastClickedMcBtn = btnElement;
+                this._submitGuess();
+            });
+        }
         UI.setPlayButtonState('loading');
         UI.setSkipButtonLabel('Skip');
 
@@ -312,9 +404,13 @@ const App = {
         UI.setPlayButtonState('playing');
 
         const durationMs = this.game.getCurrentDurationMs();
+        
+        // Check hardcore mode
+        const hardcoreCheckbox = document.getElementById('hardcore-mode-checkbox');
+        const isHardcore = hardcoreCheckbox ? hardcoreCheckbox.checked : false;
 
         try {
-            await this.player.playClip(durationMs);
+            await this.player.playClip(durationMs, isHardcore);
         } catch (e) {
             console.error('Playback error:', e);
             UI.showToast('Playback failed. Try again.', 'error');
@@ -404,7 +500,7 @@ const App = {
         const input = document.getElementById('guess-input');
         const guessText = input ? input.value.trim() : '';
 
-        if (!guessText) return;
+        if (!guessText && !this._selectedTrack) return;
 
         UI.hideAutocomplete();
         this.player.stop();
@@ -435,6 +531,18 @@ const App = {
             if (input) input.value = '';
             const submitBtn = document.getElementById('submit-btn');
             if (submitBtn) submitBtn.disabled = true;
+            
+            // Multiple choice specific: color clicked button red and re-enable others
+            if (this._lastClickedMcBtn) {
+                this._lastClickedMcBtn.classList.add('wrong');
+                const mcArea = document.getElementById('multiple-choice-area');
+                if (mcArea) {
+                    Array.from(mcArea.children).forEach(b => {
+                        if (!b.classList.contains('wrong')) b.disabled = false;
+                    });
+                }
+                this._lastClickedMcBtn = null;
+            }
         } else {
             // Wrong and no more attempts
             const lastResult = this.game.results[this.game.results.length - 1];
@@ -485,7 +593,55 @@ const App = {
         this._searchedVideos.clear();
         this._selectedTrack = null;
         YouTubeSearch.clearCache();
+        // Remove URL params on replay so it plays a fresh game
+        window.history.replaceState({}, document.title, window.location.pathname);
         UI.showScreen('screen-setup');
+    },
+
+    _shareResult() {
+        const score = this.game.getScore();
+        const maxScore = this.game.getMaxScore();
+        const results = this.game.getResults();
+        
+        let emojiStr = '';
+        results.forEach(r => {
+            if (r.correct) {
+                emojiStr += (r.attempts === 1) ? '🟩' : '🟨';
+            } else {
+                emojiStr += '🟥';
+            }
+        });
+
+        // Build URL
+        const currentUrl = new URL(window.location.href);
+        currentUrl.search = '';
+        currentUrl.searchParams.set('playlist', this._currentPlaylistUrl || '');
+        currentUrl.searchParams.set('seed', this._currentSeed);
+        
+        const hcCheckbox = document.getElementById('hardcore-mode-checkbox');
+        if (hcCheckbox && hcCheckbox.checked) currentUrl.searchParams.set('hardcore', '1');
+        
+        const mcCheckbox = document.getElementById('multiple-choice-checkbox');
+        if (mcCheckbox && mcCheckbox.checked) currentUrl.searchParams.set('mc', '1');
+
+        const textToShare = `🎵 Music Guess\nScore: ${score}/${maxScore}\n${emojiStr}\n\nCan you beat me? Play same tracks:\n${currentUrl.toString()}`;
+        
+        navigator.clipboard.writeText(textToShare).then(() => {
+            UI.showToast('Result copied to clipboard!', 'success');
+            const btn = document.getElementById('share-btn');
+            if (btn) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check"></i> Copied!';
+                if (window.lucide) lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    if (window.lucide) lucide.createIcons();
+                }, 2000);
+            }
+        }).catch(err => {
+            console.error('Clipboard error', err);
+            UI.showToast('Failed to copy to clipboard', 'error');
+        });
     },
 
     // ─── Helpers ─────────────────────────────────────────────────────

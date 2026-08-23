@@ -56,6 +56,39 @@ export default {
         return corsResponse(JSON.stringify({ error: err.message }), 502, 'application/json');
       }
     }
+    // ─── SPOTIFY SCRAPER ENDPOINT ──────────────────────────────────────
+    if (url.pathname === '/spotify') {
+      const playlistId = url.searchParams.get('id');
+      if (!playlistId) return corsResponse(JSON.stringify({ error: 'Missing ?id=' }), 400, 'application/json');
+
+      try {
+        const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}`;
+        const response = await fetch(embedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          }
+        });
+        
+        const html = await response.text();
+        const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
+        
+        if (match && match[1]) {
+          const data = JSON.parse(match[1]);
+          const trackList = data.props?.pageProps?.state?.data?.entity?.trackList;
+          if (trackList) {
+             const cleanTracks = trackList.map(t => ({
+                name: t.title,
+                artist: t.subtitle,
+                coverUrl: t.coverArt?.sources?.[0]?.url || ''
+             }));
+             return corsResponse(JSON.stringify({ tracks: cleanTracks }), 200, 'application/json');
+          }
+        }
+        return corsResponse(JSON.stringify({ error: 'Failed to extract Spotify data' }), 404, 'application/json');
+      } catch (err) {
+        return corsResponse(JSON.stringify({ error: err.message }), 502, 'application/json');
+      }
+    }
 
     // ─── APPLE MUSIC CORS PROXY ────────────────────────────────────────
     const targetUrl = url.searchParams.get('url');

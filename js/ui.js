@@ -11,18 +11,8 @@ const UI = {
     // ─── Initialization ──────────────────────────────────────────────
 
     init(onModeSelected = null) {
-        this._loadSavedClientId();
         this._ensureToastContainer();
         this.renderCuratedModes(onModeSelected);
-    },
-
-    _loadSavedClientId() {
-        const savedId = SpotifyAuth.getClientId();
-        if (savedId) {
-            const input = document.getElementById('client-id-input');
-            if (input) input.value = savedId;
-            this.showClientIdSaved();
-        }
     },
 
     _ensureToastContainer() {
@@ -45,25 +35,22 @@ const UI = {
             screen.classList.add('active');
             screen.setAttribute('aria-hidden', 'false');
         }
+        
+        // Reset Chameleon background if not on result screen
+        if (screenId !== 'screen-result') {
+            const bgLayer = document.getElementById('bg-layer');
+            if (bgLayer) {
+                bgLayer.style.opacity = '0';
+                setTimeout(() => {
+                    if (bgLayer.style.opacity === '0') {
+                        bgLayer.style.backgroundImage = 'none';
+                    }
+                }, 1500);
+            }
+        }
     },
 
     // ─── Setup Screen ────────────────────────────────────────────────
-
-    showClientIdSaved() {
-        const el = document.getElementById('client-id-status');
-        if (el) {
-            el.textContent = '✓ Client ID saved';
-            el.className = 'status-text success';
-        }
-    },
-
-    showClientIdError(msg) {
-        const el = document.getElementById('client-id-status');
-        if (el) {
-            el.textContent = '✗ ' + msg;
-            el.className = 'status-text error';
-        }
-    },
 
     renderCuratedModes(onModeSelected) {
         const container = document.getElementById('curated-modes-container');
@@ -216,10 +203,55 @@ const UI = {
         const submit = document.getElementById('submit-btn');
         const skip = document.getElementById('skip-btn');
 
-        if (input) { input.value = ''; input.disabled = false; input.focus(); }
+        if (input) { input.value = ''; input.disabled = false; }
         if (submit) submit.disabled = true;
         if (skip) skip.disabled = false;
         this.hideAutocomplete();
+        
+        // Hide multiple choice by default, let app.js trigger it
+        this.toggleMultipleChoiceMode(false);
+    },
+
+    toggleMultipleChoiceMode(isMultipleChoice) {
+        const guessArea = document.getElementById('guess-area');
+        const mcArea = document.getElementById('multiple-choice-area');
+        if (guessArea) guessArea.style.display = isMultipleChoice ? 'none' : 'flex';
+        if (mcArea) mcArea.style.display = isMultipleChoice ? 'grid' : 'none';
+        
+        if (!isMultipleChoice) {
+            const input = document.getElementById('guess-input');
+            if (input) input.focus();
+        }
+    },
+
+    renderMultipleChoice(options, onSelect) {
+        const mcArea = document.getElementById('multiple-choice-area');
+        if (!mcArea) return;
+        
+        mcArea.innerHTML = '';
+        
+        options.forEach((track, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'mc-btn';
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = track.name;
+            
+            const artistSpan = document.createElement('span');
+            artistSpan.className = 'mc-artist';
+            artistSpan.textContent = track.artist;
+            
+            btn.appendChild(titleSpan);
+            btn.appendChild(artistSpan);
+            
+            btn.onclick = () => {
+                // Disable all after click to prevent multi-clicks
+                Array.from(mcArea.children).forEach(b => b.disabled = true);
+                onSelect(track, btn);
+            };
+            
+            mcArea.appendChild(btn);
+        });
     },
 
     disableGuessControls() {
@@ -320,9 +352,17 @@ const UI = {
         const pointsEl = document.getElementById('result-points');
         const pointsContainer = document.getElementById('result-points-container');
         const resultImage = document.getElementById('result-image');
+        const bgLayer = document.getElementById('bg-layer');
 
-        if (resultImage && videoId) {
-            resultImage.src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        if (videoId) {
+            const imgUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+            if (resultImage) resultImage.src = imgUrl;
+            
+            // Chameleon Mode: Set dynamic blurred background
+            if (bgLayer) {
+                bgLayer.style.backgroundImage = `url('${imgUrl}')`;
+                bgLayer.style.opacity = '1';
+            }
         }
 
         if (icon) {
@@ -350,6 +390,13 @@ const UI = {
                 colors: ['#4ade80', '#60a5fa', '#f472b6', '#fbbf24', '#c084fc']
             });
         }
+        
+        // Update platform links
+        const q = encodeURIComponent(`${track.name} ${track.artist}`);
+        const linkSpotify = document.getElementById('link-spotify');
+        const linkApple = document.getElementById('link-apple');
+        if (linkSpotify) linkSpotify.href = `https://open.spotify.com/search/${q}`;
+        if (linkApple) linkApple.href = `https://music.apple.com/search?term=${q}`;
 
         if (window.lucide) lucide.createIcons();
         this.showScreen('screen-result');

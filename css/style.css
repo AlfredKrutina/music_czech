@@ -37,6 +37,17 @@ body {
     overflow-x: hidden;
 }
 
+.bg-layer {
+    position: fixed;
+    top: -50px; left: -50px; right: -50px; bottom: -50px;
+    z-index: -1;
+    background-size: cover;
+    background-position: center;
+    filter: blur(40px) brightness(0.25);
+    opacity: 0;
+    transition: opacity 1.5s ease, background-image 1.5s ease;
+}
+
 a {
     color: #6366f1;
     text-decoration: none;
@@ -236,6 +247,19 @@ input:disabled {
 .options-row label {
     font-size: 0.95rem;
     color: #8888a0;
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    color: #e8e8f0 !important;
+}
+.checkbox-label input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: #6366f1;
 }
 
 .status-text {
@@ -611,11 +635,63 @@ input:disabled {
 
 /* Guess Area */
 .guess-area {
-    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1rem;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 2rem;
+}
+
+.multiple-choice-area {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 2rem;
+}
+
+@media (max-width: 480px) {
+    .multiple-choice-area {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mc-btn {
+    background: #1e1e2d;
+    border: 1px solid #2a2a3a;
+    color: #e8e8f0;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.mc-btn:hover {
+    background: #2a2a3a;
+    border-color: #6366f1;
+}
+
+.mc-btn.correct {
+    background: rgba(34, 197, 94, 0.15) !important;
+    border-color: #22c55e !important;
+    color: #22c55e !important;
+}
+
+.mc-btn.wrong {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+}
+
+.mc-btn .mc-artist {
+    font-size: 0.75rem;
+    color: #8888a0;
+    display: block;
+    margin-top: 0.2rem;
 }
 
 .autocomplete-container {
@@ -804,6 +880,25 @@ input:disabled {
     color: #ef4444;
     border: 3px solid #ef4444;
 }
+
+.platform-links {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+.platform-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.75rem;
+}
+.platform-btn.spotify:hover { border-color: #1DB954; color: #1DB954; }
+.platform-btn.apple:hover { border-color: #FA243C; color: #FA243C; }
 
 @keyframes resultPop {
     0%   { transform: scale(0); opacity: 0; }
