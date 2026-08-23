@@ -87,10 +87,11 @@ export default {
     // ─── SPOTIFY SCRAPER ENDPOINT ──────────────────────────────────────
     if (url.pathname === '/spotify') {
       const playlistId = url.searchParams.get('id');
+      const type = url.searchParams.get('type') || 'playlist';
       if (!playlistId) return corsResponse(JSON.stringify({ error: 'Missing ?id=' }), 400, 'application/json');
 
       try {
-        const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}`;
+        const embedUrl = `https://open.spotify.com/embed/${type}/${playlistId}`;
         const response = await fetch(embedUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

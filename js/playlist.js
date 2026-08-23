@@ -15,7 +15,8 @@ const PlaylistLoader = {
         if (!url || typeof url !== 'string') return null;
         const u = url.trim().toLowerCase();
 
-        if (u.includes('spotify.com/playlist/') || u.startsWith('spotify:playlist:')) {
+        if (u.includes('spotify.com/playlist/') || u.startsWith('spotify:playlist:') ||
+            u.includes('spotify.com/album/') || u.startsWith('spotify:album:')) {
             return 'spotify';
         }
         if (u.includes('music.youtube.com/playlist') ||
@@ -30,11 +31,13 @@ const PlaylistLoader = {
     },
 
     /**
-     * Extract Spotify playlist ID from URL or URI.
+     * Extract Spotify type (playlist/album) and ID from URL or URI.
      */
     parseSpotifyId(url) {
-        const match = url.match(/(?:playlist\/|spotify:playlist:)([a-zA-Z0-9]+)/);
-        return match ? match[1] : null;
+        const match = url.match(/(?:(?:playlist|album)\/|spotify:(?:playlist|album):)([a-zA-Z0-9]+)/);
+        if (!match) return null;
+        const isAlbum = url.includes('album/') || url.includes(':album:');
+        return { type: isAlbum ? 'album' : 'playlist', id: match[1] };
     },
 
     /**
@@ -67,7 +70,7 @@ const PlaylistLoader = {
         throw new Error(
             'Unsupported playlist URL.\n\n' +
             'Supported formats:\n' +
-            '• Spotify: https://open.spotify.com/playlist/...\n' +
+            '• Spotify: https://open.spotify.com/playlist/... (or /album/...)\n' +
             '• YouTube Music: https://music.youtube.com/playlist?list=...\n' +
             '• YouTube: https://www.youtube.com/playlist?list=...\n' +
             '• Apple Music: https://music.apple.com/.../playlist/...'
@@ -77,14 +80,14 @@ const PlaylistLoader = {
     // ─── Spotify ─────────────────────────────────────────────────────
 
     async _loadSpotify(url, onProgress) {
-        const playlistId = this.parseSpotifyId(url);
-        if (!playlistId) {
-            throw new Error('Could not extract playlist ID from the Spotify URL.');
+        const parsed = this.parseSpotifyId(url);
+        if (!parsed || !parsed.id) {
+            throw new Error('Could not extract ID from the Spotify URL.');
         }
 
-        if (onProgress) onProgress(0, 0, 'Fetching Spotify playlist...');
+        if (onProgress) onProgress(0, 0, 'Fetching Spotify playlist/album...');
 
-        const proxyUrl = `${CONFIG.WORKER_URL}/spotify?id=${encodeURIComponent(playlistId)}`;
+        const proxyUrl = `${CONFIG.WORKER_URL}/spotify?type=${parsed.type}&id=${encodeURIComponent(parsed.id)}`;
         const response = await fetch(proxyUrl);
         
         if (!response.ok) {
