@@ -121,14 +121,14 @@ export default {
 
     // ─── LEADERBOARD ENDPOINT ──────────────────────────────────────────
     if (url.pathname === '/leaderboard') {
-      const seed = url.searchParams.get('seed');
-      if (!seed) return corsResponse(JSON.stringify({ error: 'Missing ?seed=' }), 400, 'application/json');
+      const boardId = url.searchParams.get('boardId');
+      if (!boardId) return corsResponse(JSON.stringify({ error: 'Missing ?boardId=' }), 400, 'application/json');
 
       const KV = env.LEADERBOARD_KV;
       if (!KV) return corsResponse(JSON.stringify({ error: 'LEADERBOARD_KV not bound. Please bind it in Cloudflare.' }), 500, 'application/json');
 
       if (request.method === 'GET') {
-        const data = await KV.get(seed, 'json');
+        const data = await KV.get(boardId, 'json');
         return corsResponse(JSON.stringify(data || []), 200, 'application/json');
       }
 
@@ -144,7 +144,7 @@ export default {
           const cleanName = name.trim().substring(0, 20);
           if (!cleanName) return corsResponse(JSON.stringify({ error: 'Name cannot be empty' }), 400, 'application/json');
 
-          let leaderboard = await KV.get(seed, 'json') || [];
+          let leaderboard = await KV.get(boardId, 'json') || [];
           leaderboard.push({ name: cleanName, score, maxScore, timeMs, date: new Date().toISOString() });
 
           // Sort descending by score, then ascending by timeMs
@@ -155,7 +155,7 @@ export default {
 
           leaderboard = leaderboard.slice(0, 20); // Keep top 20
 
-          await KV.put(seed, JSON.stringify(leaderboard));
+          await KV.put(boardId, JSON.stringify(leaderboard));
           return corsResponse(JSON.stringify(leaderboard), 200, 'application/json');
         } catch (e) {
           return corsResponse(JSON.stringify({ error: 'Invalid JSON or Request' }), 400, 'application/json');

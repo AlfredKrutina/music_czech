@@ -180,9 +180,9 @@ const App = {
         const roundsSelect = document.getElementById('rounds-select');
         if (roundsSelect) roundsSelect.value = "10";
         
-        // Disable hardcore/multiple choice to keep it fair for everyone
-        const hcCheckbox = document.getElementById('hardcore-mode-checkbox');
-        if (hcCheckbox) hcCheckbox.checked = false;
+        // Disable special modes to keep it fair for everyone
+        const startPosSelect = document.getElementById('start-pos-select');
+        if (startPosSelect) startPosSelect.value = 'beginning';
         
         const mcCheckbox = document.getElementById('multiple-choice-checkbox');
         if (mcCheckbox) mcCheckbox.checked = false;
@@ -239,8 +239,29 @@ const App = {
             UI.setTrackList(tracks);
             UI.showToast(`Loaded ${tracks.length} tracks!`, 'success');
 
-            // Step 2: Start the game
+            // Step 2: Extract clean playlist ID for the leaderboard key
+            let cleanPlaylistId = 'unknown';
+            if (platform === 'spotify') {
+                const sp = MusicFetcher.parseSpotifyId(url);
+                if (sp) cleanPlaylistId = sp.id;
+            } else if (platform === 'youtube') {
+                const yt = MusicFetcher.parseYouTubeId(url);
+                if (yt) cleanPlaylistId = yt;
+            } else if (platform === 'apple') {
+                const match = url.match(/pl\.[a-zA-Z0-9]+/);
+                if (match) cleanPlaylistId = match[0];
+            }
+
+            // Step 3: Build composite boardId
             const numRounds = UI.getSelectedRounds();
+            const startPosSelect = document.getElementById('start-pos-select');
+            const startMode = startPosSelect ? startPosSelect.value : 'beginning';
+            const mcCheckbox = document.getElementById('multiple-choice-checkbox');
+            const isMultipleChoice = mcCheckbox ? mcCheckbox.checked : false;
+
+            this._currentBoardId = `${this._currentSeed}_${cleanPlaylistId}_${numRounds}_${startMode}_${isMultipleChoice ? 'mc' : 'text'}`;
+
+            // Step 4: Start the game
             this.game.startGame(tracks, numRounds);
 
             // Step 3: Pre-search YouTube for game tracks
@@ -718,7 +739,7 @@ const App = {
         list.innerHTML = '<div style="text-align: center; color: #9ca3af;">Loading leaderboard...</div>';
 
         try {
-            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard?seed=${this._currentSeed}`);
+            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard?boardId=${this._currentBoardId}`);
             if (!res.ok) throw new Error('Network error');
             const data = await res.json();
             
@@ -772,7 +793,7 @@ const App = {
         submitBtn.textContent = 'Submitting...';
 
         try {
-            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard?seed=${this._currentSeed}`, {
+            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard?boardId=${this._currentBoardId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -780,7 +801,7 @@ const App = {
                     score: this.game.getScore(),
                     maxScore: this.game.getMaxScore(),
                     timeMs: this._gameTimeMs,
-                    seed: this._currentSeed
+                    boardId: this._currentBoardId
                 })
             });
 
