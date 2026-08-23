@@ -301,6 +301,7 @@ const App = {
             UI.setCancelButton(false);
 
             // Step 4: Start the first round
+            this._gameStartTime = performance.now();
             await this._startRound();
 
         } catch (e) {
@@ -581,11 +582,122 @@ const App = {
     },
 
     _showSummary() {
+        this._gameEndTime = performance.now();
+        this._gameTimeMs = Math.round(this._gameEndTime - (this._gameStartTime || this._gameEndTime));
+        
         UI.showGameSummary(
             this.game.getScore(),
             this.game.getMaxScore(),
             this.game.getResults()
         );
+        
+        // Setup leaderboard
+        const submitBtn = document.getElementById('leaderboard-submit-btn');
+        if (submitBtn) {
+            submitBtn.onclick = () => this._submitScore();
+        }
+        
+        const nameInput = document.getElementById('leaderboard-name-input');
+        if (nameInput) {
+            const savedName = localStorage.getItem('music_guess_name');
+            if (savedName) nameInput.value = savedName;
+        }
+
+        this._loadLeaderboard();
+    },
+
+    async _loadLeaderboard() {
+        if (!CONFIG.WORKER_URL) return;
+        const container = document.getElementById('leaderboard-container');
+        const list = document.getElementById('leaderboard-list');
+        if (!container || !list) return;
+
+        container.style.display = 'block';
+        list.innerHTML = '<div style="text-align: center; color: #9ca3af;">Loading leaderboard...</div>';
+
+        try {
+            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard?seed=${this._currentSeed}`);
+            if (!res.ok) throw new Error('Network error');
+            const data = await res.json();
+            
+            if (data.error) throw new Error(data.error);
+            
+            list.innerHTML = '';
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #9ca3af;">No scores yet. Be the first!</div>';
+                return;
+            }
+
+            data.forEach((entry, idx) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.justifyContent = 'space-between';
+                row.style.padding = '0.5rem';
+                row.style.background = idx === 0 ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.05)';
+                row.style.borderRadius = '0.25rem';
+                
+                const rankName = document.createElement('div');
+                let medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+                rankName.innerHTML = `<span style="display:inline-block; width: 24px; color: #fbbf24;">${medal}</span> <strong>${this._escapeHtml(entry.name)}</strong>`;
+                
+                const scoreTime = document.createElement('div');
+                const timeStr = entry.timeMs ? (entry.timeMs / 1000).toFixed(1) + 's' : '';
+                scoreTime.innerHTML = `<span style="color: #4ade80;">${entry.score}/${entry.maxScore}</span> <small style="color: #9ca3af; margin-left: 0.5rem;">${timeStr}</small>`;
+                
+                row.appendChild(rankName);
+                row.appendChild(scoreTime);
+                list.appendChild(row);
+            });
+        } catch (e) {
+            list.innerHTML = `<div style="text-align: center; color: #ef4444;">Failed to load leaderboard.</div>`;
+        }
+    },
+
+    async _submitScore() {
+        if (!CONFIG.WORKER_URL) return;
+        const nameInput = document.getElementById('leaderboard-name-input');
+        const submitBtn = document.getElementById('leaderboard-submit-btn');
+        if (!nameInput || !submitBtn) return;
+
+        const name = nameInput.value.trim();
+        if (!name) {
+            UI.showToast('Please enter your nickname!', 'error');
+            return;
+        }
+
+        localStorage.setItem('music_guess_name', name);
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        try {
+            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    score: this.game.getScore(),
+                    maxScore: this.game.getMaxScore(),
+                    timeMs: this._gameTimeMs,
+                    seed: this._currentSeed
+                })
+            });
+
+            if (!res.ok) throw new Error('Submission failed');
+            
+            UI.showToast('Score submitted successfully!', 'success');
+            await this._loadLeaderboard();
+        } catch (e) {
+            UI.showToast('Failed to submit score.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Score';
+        }
+    },
+
+    _escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     },
 
     _playAgain() {
