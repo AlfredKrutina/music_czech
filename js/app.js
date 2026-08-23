@@ -403,7 +403,7 @@ const App = {
                 const currentArtist = track.artist.split(/,|&|feat\.?/i)[0].trim();
                 
                 // Get a random artist from the playlist
-                const otherTracks = this.game.playlist.filter(t => t.id !== track.id);
+                const otherTracks = this.game.tracks.filter(t => t.id !== track.id);
                 let randomArtist = currentArtist;
                 if (otherTracks.length > 0) {
                     const randomTrack = otherTracks[Math.floor(Math.random() * otherTracks.length)];
@@ -448,7 +448,7 @@ const App = {
                 }
 
                 // 3. Fill the rest from the actual playlist pool
-                const playlistPool = this.game.playlist.filter(t => t.id !== track.id);
+                const playlistPool = this.game.tracks.filter(t => t.id !== track.id);
                 playlistPool.sort(() => 0.5 - Math.random());
                 for (const p of playlistPool) {
                     if (options.length >= 8) break;
