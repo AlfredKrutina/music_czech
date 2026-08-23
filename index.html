@@ -227,9 +227,12 @@
                 </a>
             </div>
 
-            <button id="next-round-btn" class="btn btn-primary btn-lg">
+            <button id="next-round-btn" class="btn btn-primary btn-lg" style="display: none;">
                 Next Round →
             </button>
+            <div id="auto-next-indicator" style="margin-top: 1rem; color: rgba(255,255,255,0.5); font-size: 0.9rem; font-weight: 500;">
+                Next round in <span id="auto-next-countdown">3</span>...
+            </div>
         </div>
     </div>
 
@@ -290,12 +293,13 @@
          SCRIPTS (order matters — dependencies first)
          ═══════════════════════════════════════════════════════════════ -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-    <script src="js/config.js?v=12"></script>
-    <script src="js/fuzzy.js?v=12"></script>
-    <script src="js/auth.js?v=12"></script>
-    <script src="js/search.js?v=12"></script>
-    <script src="js/player.js?v=12"></script>
-    <script src="js/playlist.js?v=12"></script>
+    <script src="js/config.js?v=13"></script>
+    <script src="js/fuzzy.js?v=13"></script>
+    <script src="js/auth.js?v=13"></script>
+    <script src="js/search.js?v=13"></script>
+    <script src="js/player.js?v=13"></script>
+    <script src="js/sfx.js?v=13"></script>
+    <script src="js/playlist.js?v=13"></script>
     <script src="js/game.js?v=12"></script>
     <script src="js/ui.js?v=12"></script>
     <script src="js/app.js?v=12"></script>

@@ -355,7 +355,15 @@ const UI = {
         return dropdown && dropdown.classList.contains('visible');
     },
 
-    // ─── Round Result Screen ─────────────────────────────────────────
+    setBlurredBackground(videoId) {
+        const bgLayer = document.getElementById('bg-layer');
+        if (bgLayer) {
+            const imgUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+            bgLayer.style.backgroundImage = `url('${imgUrl}')`;
+            bgLayer.style.filter = 'blur(60px) brightness(0.6)';
+            bgLayer.style.opacity = '1';
+        }
+    },
 
     showRoundResult(correct, track, videoId, points) {
         const icon = document.getElementById('result-icon');
@@ -371,9 +379,10 @@ const UI = {
             const imgUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
             if (resultImage) resultImage.src = imgUrl;
             
-            // Chameleon Mode: Set dynamic blurred background
+            // Blur Reveal!
             if (bgLayer) {
                 bgLayer.style.backgroundImage = `url('${imgUrl}')`;
+                bgLayer.style.filter = 'blur(0px) brightness(1)';
                 bgLayer.style.opacity = '1';
             }
         }

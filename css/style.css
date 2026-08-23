@@ -43,9 +43,9 @@ body {
     z-index: -1;
     background-size: cover;
     background-position: center;
-    filter: blur(40px) brightness(0.25);
+    filter: blur(60px) brightness(0.6);
     opacity: 0;
-    transition: opacity 1.5s ease, background-image 1.5s ease;
+    transition: opacity 1.5s ease, filter 1.5s ease, background-image 1.5s ease;
 }
 
 a {

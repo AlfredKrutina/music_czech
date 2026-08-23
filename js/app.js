@@ -361,6 +361,9 @@ const App = {
 
         // Load the YouTube video
         const videoId = this._searchedVideos.get(this.game.currentRound);
+        if (videoId) {
+            UI.setBlurredBackground(videoId);
+        }
 
         if (!videoId) {
             // No video found — skip this round
@@ -571,12 +574,15 @@ const App = {
         this._selectedTrack = null;
 
         if (result.correct) {
+            SFX.playCorrect();
             // Correct answer!
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
             UI.showRoundResult(true, lastResult.track, videoId, result.points);
             this.player.playClip(15000); // Play full clip as celebration
+            this._startAutoPlayTimer();
         } else if (result.canContinue) {
+            SFX.playWrong();
             // Wrong, but can still try
             UI.showWrongGuess();
             UI.showToast('Wrong answer! Clip extended.', 'error');
@@ -598,11 +604,13 @@ const App = {
                 this._lastClickedMcBtn = null;
             }
         } else {
+            SFX.playWrong();
             // Wrong and no more attempts
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             this.player.playClip(15000); // Reveal what it was!
+            this._startAutoPlayTimer();
         }
     },
 
@@ -611,21 +619,46 @@ const App = {
         const result = this.game.skip();
 
         if (result.canContinue) {
+            SFX.playPop();
             UI.updateDurationLabel(result.duration);
             UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
             UI.showToast(`Clip extended to ${this._formatDuration(result.duration)}`, 'info');
         } else {
+            SFX.playWrong();
             // No more skips — failed
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             this.player.playClip(15000); // Reveal what it was!
+            this._startAutoPlayTimer();
         }
     },
 
     // ─── Round Transitions ───────────────────────────────────────────
 
+    _startAutoPlayTimer() {
+        if (this._autoPlayTimer) clearInterval(this._autoPlayTimer);
+        const indicator = document.getElementById('auto-next-indicator');
+        const countdownSpan = document.getElementById('auto-next-countdown');
+        if (indicator) indicator.style.display = 'block';
+        
+        let secondsLeft = 3;
+        if (countdownSpan) countdownSpan.textContent = secondsLeft;
+        
+        this._autoPlayTimer = setInterval(() => {
+            secondsLeft--;
+            if (countdownSpan) countdownSpan.textContent = secondsLeft;
+            
+            if (secondsLeft <= 0) {
+                clearInterval(this._autoPlayTimer);
+                if (indicator) indicator.style.display = 'none';
+                this._nextRound();
+            }
+        }, 1000);
+    },
+
     async _nextRound() {
+        if (this._autoPlayTimer) clearInterval(this._autoPlayTimer);
         if (this.game.nextRound()) {
             await this._startRound();
         } else {
