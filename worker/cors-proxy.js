@@ -222,7 +222,7 @@ export default {
 function corsResponse(body, status = 200, contentType = 'text/html; charset=utf-8') {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Max-Age': '86400',
     'Content-Type': contentType,
