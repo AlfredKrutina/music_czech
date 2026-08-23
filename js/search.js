@@ -26,9 +26,9 @@ const YouTubeSearch = {
         let result = null;
 
         // 1. PRIMARY: Try Cloudflare Worker proxy if configured
-        if (CONFIG.APPLE_MUSIC_WORKER_URL) {
+        if (CONFIG.WORKER_URL) {
             try {
-                const workerUrl = CONFIG.APPLE_MUSIC_WORKER_URL.replace(/\/$/, '') + '/youtube?q=' + encodeURIComponent(query);
+                const workerUrl = CONFIG.WORKER_URL.replace(/\/$/, '') + '/youtube?q=' + encodeURIComponent(query);
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 8000);
                 const response = await fetch(workerUrl, { signal: controller.signal });
