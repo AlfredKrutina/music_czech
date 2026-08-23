@@ -57,8 +57,11 @@ const UI = {
         if (!container) return;
 
         container.innerHTML = '';
-        
-        if (!CONFIG.PREDEFINED_PLAYLISTS) return;
+        let playlists = CONFIG.PREDEFINED_PLAYLISTS;
+        if (!playlists && CONFIG.CURATED_MODES) {
+            playlists = { "Curated": CONFIG.CURATED_MODES };
+        }
+        if (!playlists) return;
 
         const select = document.createElement('select');
         select.className = 'select-input';
@@ -71,7 +74,7 @@ const UI = {
         defaultOption.selected = true;
         select.appendChild(defaultOption);
 
-        for (const [categoryName, items] of Object.entries(CONFIG.PREDEFINED_PLAYLISTS)) {
+        for (const [categoryName, items] of Object.entries(playlists)) {
             const optgroup = document.createElement('optgroup');
             optgroup.label = categoryName;
 
