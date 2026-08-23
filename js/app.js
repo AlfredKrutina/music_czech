@@ -110,6 +110,7 @@ const App = {
         this._on('playlist-url-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._loadPlaylist();
         });
+        this._on('load-playlist-btn', 'click', () => this._loadPlaylist());
         this._on('infinite-search-btn', 'click', () => this._searchAndLoad());
         this._on('infinite-search-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._searchAndLoad();
@@ -466,13 +467,7 @@ const App = {
         }
     },
 
-    // ─── Playlist Loading ────────────────────────────────────────────
 
-    async _loadPlaylist(url = null) {
-        if (!url) {
-            const input = document.getElementById('playlist-url-input');
-            url = input ? input.value.trim() : '';
-        }
 
     // ─── Guessing ────────────────────────────────────────────────────
 
