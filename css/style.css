@@ -247,6 +247,65 @@ input:disabled {
 .status-text.error { color: #ef4444; }
 
 /* ═══════════════════════════════════════════════════════════════════
+   CURATED MODES (QUICK PLAY)
+   ═══════════════════════════════════════════════════════════════════ */
+.curated-modes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.modes-category {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modes-category-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8888a0;
+    font-weight: 700;
+}
+
+.modes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.5rem;
+}
+
+.mode-chip {
+    background: #1e1e2e;
+    border: 1px solid #3a3a5a;
+    border-radius: 10px;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #c8c8e0;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.mode-chip:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: #6366f1;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.mode-chip:active {
+    transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    SETUP SCREEN
    ═══════════════════════════════════════════════════════════════════ */
 .setup-container {

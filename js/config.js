@@ -67,6 +67,26 @@ const CONFIG = {
         'https://corsproxy.io/?url=',
         'https://api.allorigins.win/raw?url=',
         'https://corsproxy.org/?url=',
-    ]
+    ],
+
+    // ─── Curated Modes (Predefined Playlists) ─────────────────────────────────
+    PREDEFINED_PLAYLISTS: {
+        "Decades": [
+            { name: "2000s Hits", url: "https://music.apple.com/us/playlist/00s-pop-essentials/pl.f4d106fed2bd41149aaacabb233eb5eb" },
+            { name: "90s Hits", url: "https://music.apple.com/us/playlist/90s-pop-essentials/pl.5ee8333dbe944d9f9151e0f6f707ce56" },
+            { name: "80s Hits", url: "https://music.apple.com/us/playlist/80s-pop-essentials/pl.7c94b73347b74f32997e06a3ec02ba6d" }
+        ],
+        "Genres": [
+            { name: "Pop", url: "https://music.apple.com/us/playlist/pop-essentials/pl.f4d106fed2bd41149aaacabb233eb5eb" }, // Example fallback
+            { name: "Hip-Hop", url: "https://music.apple.com/us/playlist/hip-hop-essentials/pl.004cc511bbab4294a8f949ccf5fc48b2" },
+            { name: "Rock", url: "https://music.apple.com/us/playlist/rock-essentials/pl.27d928236306436bac776a94a2ca39b1" }
+        ],
+        "Artists": [
+            { name: "Oasis", url: "https://music.apple.com/us/playlist/oasis-essentials/pl.4b5e0c818ba040b2a8ed2945d8b7b752" },
+            { name: "Post Malone", url: "https://music.apple.com/us/playlist/post-malone-essentials/pl.807d9dcb8e4942d79d67b2d56a20b7cf" },
+            { name: "The Weeknd", url: "https://music.apple.com/us/playlist/the-weeknd-essentials/pl.9eb97bc913dc40e9858f9188bf7fc900" },
+            { name: "Taylor Swift", url: "https://music.apple.com/us/playlist/taylor-swift-essentials/pl.7ee6bc32ebbf41ebaba11ccfe134a475" }
+        ]
+    }
 };
 

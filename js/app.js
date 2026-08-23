@@ -20,7 +20,7 @@ const App = {
         this.game = new Game();
         this.player = new AudioPlayer('yt-player');
 
-        UI.init();
+        UI.init((url) => this._loadPlaylist(url));
         this._bindEvents();
         this._registerGlobalErrorHandler();
         UI.showScreen('screen-setup');
@@ -120,8 +120,8 @@ const App = {
         UI.showToast('Client ID saved!', 'success');
     },
 
-    async _loadPlaylist() {
-        const url = UI.getPlaylistUrl();
+    async _loadPlaylist(predefinedUrl = null) {
+        const url = predefinedUrl || UI.getPlaylistUrl();
         if (!url) {
             UI.showToast('Please enter a playlist URL', 'error');
             return;
@@ -254,7 +254,6 @@ const App = {
 
         // Update UI
         UI.showScreen('screen-game');
-        UI.hideReveal();
         UI.updateRoundInfo(this.game.getCurrentRoundNumber(), this.game.getTotalRounds());
         UI.updateScore(this.game.getScore());
         UI.updateDurationLabel(this.game.getCurrentDuration());
@@ -425,7 +424,7 @@ const App = {
             // Correct answer!
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
-            UI.showReveal(lastResult.track, videoId, true, result.points);
+            UI.showRoundResult(true, lastResult.track, videoId, result.points);
             this.player.playClip(15000); // Play full clip as celebration
         } else if (result.canContinue) {
             // Wrong, but can still try
@@ -440,7 +439,7 @@ const App = {
             // Wrong and no more attempts
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
-            UI.showReveal(lastResult.track, videoId, false, 0);
+            UI.showRoundResult(false, lastResult.track, videoId, 0);
             this.player.playClip(15000); // Reveal what it was!
         }
     },
@@ -457,7 +456,7 @@ const App = {
             // No more skips — failed
             const lastResult = this.game.results[this.game.results.length - 1];
             const videoId = this._searchedVideos.get(this.game.currentRound - 1);
-            UI.showReveal(lastResult.track, videoId, false, 0);
+            UI.showRoundResult(false, lastResult.track, videoId, 0);
             this.player.playClip(15000); // Reveal what it was!
         }
     },

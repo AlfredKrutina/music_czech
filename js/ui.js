@@ -10,9 +10,10 @@ const UI = {
 
     // ─── Initialization ──────────────────────────────────────────────
 
-    init() {
+    init(onModeSelected = null) {
         this._loadSavedClientId();
         this._ensureToastContainer();
+        this.renderCuratedModes(onModeSelected);
     },
 
     _loadSavedClientId() {
@@ -59,8 +60,48 @@ const UI = {
     showClientIdError(msg) {
         const el = document.getElementById('client-id-status');
         if (el) {
-            el.textContent = msg;
+            el.textContent = '✗ ' + msg;
             el.className = 'status-text error';
+        }
+    },
+
+    renderCuratedModes(onModeSelected) {
+        const container = document.getElementById('curated-modes-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        
+        if (!CONFIG.PREDEFINED_PLAYLISTS) return;
+
+        for (const [categoryName, items] of Object.entries(CONFIG.PREDEFINED_PLAYLISTS)) {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'modes-category';
+            
+            const title = document.createElement('h4');
+            title.className = 'modes-category-title';
+            title.textContent = categoryName;
+            categoryDiv.appendChild(title);
+
+            const grid = document.createElement('div');
+            grid.className = 'modes-grid';
+
+            items.forEach(item => {
+                const chip = document.createElement('div');
+                chip.className = 'mode-chip';
+                chip.textContent = item.name;
+                chip.title = item.url;
+                
+                if (onModeSelected) {
+                    chip.addEventListener('click', () => {
+                        onModeSelected(item.url);
+                    });
+                }
+                
+                grid.appendChild(chip);
+            });
+
+            categoryDiv.appendChild(grid);
+            container.appendChild(categoryDiv);
         }
     },
 
@@ -168,50 +209,7 @@ const UI = {
         if (window.lucide) lucide.createIcons();
     },
 
-    showReveal(track, videoId, isCorrect, points) {
-        const reveal = document.getElementById('reveal-container');
-        const inputArea = document.getElementById('guess-area');
-        
-        document.getElementById('reveal-image').src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-        document.getElementById('reveal-title').textContent = track.name;
-        document.getElementById('reveal-artist').textContent = track.artist;
-        
-        const status = document.getElementById('reveal-status');
-        if (isCorrect) {
-            status.textContent = `Correct! +${points} pts`;
-            status.style.color = '#4ade80';
-            
-            // Fire confetti!
-            if (window.confetti) {
-                confetti({
-                    particleCount: 150,
-                    spread: 80,
-                    origin: { y: 0.6 },
-                    colors: ['#4ade80', '#60a5fa', '#f472b6', '#fbbf24', '#c084fc']
-                });
-            }
-        } else {
-            status.textContent = 'Out of attempts!';
-            status.style.color = '#f87171';
-        }
-        
-        // Restart animation
-        reveal.classList.remove('animate-reveal');
-        void reveal.offsetWidth; // trigger reflow
-        
-        if (inputArea) inputArea.classList.add('hidden');
-        if (reveal) {
-            reveal.classList.remove('hidden');
-            reveal.classList.add('animate-reveal');
-        }
-    },
 
-    hideReveal() {
-        const reveal = document.getElementById('reveal-container');
-        const inputArea = document.getElementById('guess-area');
-        if (reveal) reveal.classList.add('hidden');
-        if (inputArea) inputArea.classList.remove('hidden');
-    },
 
     resetGuessInput() {
         const input = document.getElementById('guess-input');
@@ -314,13 +312,18 @@ const UI = {
 
     // ─── Round Result Screen ─────────────────────────────────────────
 
-    showRoundResult(correct, track, points) {
+    showRoundResult(correct, track, videoId, points) {
         const icon = document.getElementById('result-icon');
         const title = document.getElementById('result-title');
         const trackName = document.getElementById('result-track-name');
         const trackArtist = document.getElementById('result-track-artist');
         const pointsEl = document.getElementById('result-points');
         const pointsContainer = document.getElementById('result-points-container');
+        const resultImage = document.getElementById('result-image');
+
+        if (resultImage && videoId) {
+            resultImage.src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        }
 
         if (icon) {
             icon.innerHTML = correct
@@ -337,6 +340,15 @@ const UI = {
         if (pointsEl) pointsEl.textContent = points;
         if (pointsContainer) {
             pointsContainer.className = `result-points ${correct ? 'earned' : 'zero'}`;
+        }
+
+        if (correct && window.confetti) {
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#4ade80', '#60a5fa', '#f472b6', '#fbbf24', '#c084fc']
+            });
         }
 
         if (window.lucide) lucide.createIcons();
