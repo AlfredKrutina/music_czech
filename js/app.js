@@ -117,6 +117,7 @@ const App = {
         });
 
         // --- Game screen ---
+        this._on('quit-game-btn', 'click', () => this._quitGame());
         this._on('play-btn', 'click', () => this._playClip());
         this._on('submit-btn', 'click', () => this._submitGuess());
         this._on('skip-btn', 'click', () => this._skip());
@@ -315,6 +316,25 @@ const App = {
     },
 
     // ─── Game Flow ───────────────────────────────────────────────────
+    
+    _quitGame() {
+        if (!confirm('Are you sure you want to quit to the main menu? Your progress will be lost.')) return;
+        
+        // Stop audio
+        if (this.player) this.player.stop();
+        
+        // Clear any auto-play timers
+        if (this._autoPlayTimer) {
+            clearTimeout(this._autoPlayTimer);
+            this._autoPlayTimer = null;
+        }
+
+        // Reset UI background
+        UI.clearBlurredBackground();
+
+        // Go back to setup screen
+        UI.showScreen('screen-setup');
+    },
 
     async _startRound() {
         const track = this.game.getCurrentTrack();

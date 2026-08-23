@@ -145,12 +145,15 @@
     <div id="screen-game" class="screen" aria-hidden="true">
         <div class="container game-container">
             <!-- Header bar -->
-            <div class="game-header">
-                <div class="round-info">
+            <div class="game-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <button id="quit-game-btn" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px;" title="Quit to Menu">
+                    <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                </button>
+                <div class="round-info" style="font-weight: 500; color: #a1a1aa;">
                     Round <span id="current-round">1</span> / <span id="total-rounds">10</span>
                 </div>
-                <div class="score-info">
-                    Score: <span id="current-score" class="score-value">0</span>
+                <div class="score-info" style="font-weight: 700;">
+                    Score: <span id="current-score" class="score-value" style="color: #4ade80;">0</span>
                 </div>
             </div>
 

@@ -368,6 +368,14 @@ const UI = {
         }
     },
 
+    clearBlurredBackground() {
+        const bgLayer = document.getElementById('bg-layer');
+        if (bgLayer) {
+            bgLayer.style.backgroundImage = '';
+            bgLayer.style.opacity = '0';
+        }
+    },
+
     showRoundResult(correct, track, videoId, points) {
         const icon = document.getElementById('result-icon');
         const title = document.getElementById('result-title');
