@@ -199,11 +199,7 @@ const App = {
             return;
         }
 
-        // Spotify requires Client ID
-        if (platform === 'spotify' && !SpotifyAuth.hasClientId()) {
-            UI.showToast('Please save your Spotify Client ID first', 'error');
-            return;
-        }
+        // Spotify scraper is used via Cloudflare Worker, no auth needed!
 
         // Switch to loading screen
         this._loadingCancelled = false;
