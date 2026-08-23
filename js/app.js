@@ -395,10 +395,87 @@ const App = {
         if (isMultipleChoice) {
             // Generate options only once per round
             if (!this._mcOptions) {
+                UI.setPlayButtonState('loading'); // Show loading while fetching distractors
                 const options = [track];
-                const pool = this.game.playlist.filter(t => t.id !== track.id);
-                pool.sort(() => 0.5 - Math.random());
-                options.push(...pool.slice(0, 7));
+                let distractorPool = [];
+                
+                // Get current artist (split by feat/&/,)
+                const currentArtist = track.artist.split(/,|&|feat\.?/i)[0].trim();
+                
+                // Get a random artist from the playlist
+                const otherTracks = this.game.playlist.filter(t => t.id !== track.id);
+                let randomArtist = currentArtist;
+                if (otherTracks.length > 0) {
+                    const randomTrack = otherTracks[Math.floor(Math.random() * otherTracks.length)];
+                    randomArtist = randomTrack.artist.split(/,|&|feat\.?/i)[0].trim();
+                }
+
+                try {
+                    // Fetch distractors concurrently (fail silently if offline or blocked)
+                    const [res1, res2] = await Promise.all([
+                        fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(currentArtist)}&entity=song&limit=15`).catch(()=>null),
+                        (currentArtist !== randomArtist) 
+                            ? fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(randomArtist)}&entity=song&limit=15`).catch(()=>null)
+                            : Promise.resolve(null)
+                    ]);
+                    
+                    if (res1 && res1.ok) {
+                        const data = await res1.json();
+                        distractorPool.push(...(data.results || []).map(r => ({ name: r.trackName, artist: r.artistName, displayName: `${r.artistName} — ${r.trackName}` })));
+                    }
+                    if (res2 && res2.ok) {
+                        const data = await res2.json();
+                        distractorPool.push(...(data.results || []).map(r => ({ name: r.trackName, artist: r.artistName, displayName: `${r.artistName} — ${r.trackName}` })));
+                    }
+                } catch(e) {
+                    console.warn("Could not fetch distractors", e);
+                }
+
+                // 1. Add up to 3 distractors from the SAME artist
+                const sameArtistPool = distractorPool.filter(t => t.artist.toLowerCase().includes(currentArtist.toLowerCase()) && t.name.toLowerCase() !== track.name.toLowerCase());
+                sameArtistPool.sort(() => 0.5 - Math.random());
+                for (const d of sameArtistPool) {
+                    if (options.length >= 4) break; // max 3 distractors for current artist
+                    if (!options.find(o => o.name.toLowerCase() === d.name.toLowerCase())) options.push(d);
+                }
+
+                // 2. Add some distractors from the RANDOM artist we fetched
+                const otherArtistPool = distractorPool.filter(t => !t.artist.toLowerCase().includes(currentArtist.toLowerCase()));
+                otherArtistPool.sort(() => 0.5 - Math.random());
+                for (const d of otherArtistPool) {
+                    if (options.length >= 8) break;
+                    if (!options.find(o => o.name.toLowerCase() === d.name.toLowerCase())) options.push(d);
+                }
+
+                // 3. Fill the rest from the actual playlist pool
+                const playlistPool = this.game.playlist.filter(t => t.id !== track.id);
+                playlistPool.sort(() => 0.5 - Math.random());
+                for (const p of playlistPool) {
+                    if (options.length >= 8) break;
+                    if (!options.find(o => o.name.toLowerCase() === p.name.toLowerCase())) options.push(p);
+                }
+
+                // 4. If STILL not 8, add generic fillers
+                if (options.length < 8) {
+                    const GENERIC_FILLERS = [
+                        {name: 'Blinding Lights', artist: 'The Weeknd'},
+                        {name: 'Shape of You', artist: 'Ed Sheeran'},
+                        {name: 'Someone Like You', artist: 'Adele'},
+                        {name: 'Bohemian Rhapsody', artist: 'Queen'},
+                        {name: 'Billie Jean', artist: 'Michael Jackson'},
+                        {name: 'Smells Like Teen Spirit', artist: 'Nirvana'},
+                        {name: 'Rolling in the Deep', artist: 'Adele'},
+                        {name: 'Hotel California', artist: 'Eagles'},
+                        {name: 'Wonderwall', artist: 'Oasis'},
+                        {name: 'Toxic', artist: 'Britney Spears'}
+                    ];
+                    GENERIC_FILLERS.sort(() => 0.5 - Math.random());
+                    for (const f of GENERIC_FILLERS) {
+                        if (options.length >= 8) break;
+                        if (!options.find(o => o.name.toLowerCase() === f.name.toLowerCase())) options.push(f);
+                    }
+                }
+
                 options.sort(() => 0.5 - Math.random());
                 this._mcOptions = options;
             }
