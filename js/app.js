@@ -70,10 +70,8 @@ const App = {
             }
         });
 
-        // --- Result screen ---
         this._on('next-round-btn', 'click', () => this._nextRound());
-
-        // --- Summary screen ---
+        this._on('next-round-btn-inline', 'click', () => this._nextRound());
         this._on('play-again-btn', 'click', () => this._playAgain());
     },
 
@@ -219,6 +217,7 @@ const App = {
 
         // Update UI
         UI.showScreen('screen-game');
+        UI.hideReveal();
         UI.updateRoundInfo(this.game.getCurrentRoundNumber(), this.game.getTotalRounds());
         UI.updateScore(this.game.getScore());
         UI.updateDurationLabel(this.game.getCurrentDuration());
@@ -383,7 +382,9 @@ const App = {
         if (result.correct) {
             // Correct answer!
             const lastResult = this.game.results[this.game.results.length - 1];
-            UI.showRoundResult(true, lastResult.track, result.points);
+            const videoId = this._searchedVideos.get(this.game.currentRound - 1);
+            UI.showReveal(lastResult.track, videoId, true, result.points);
+            this.player.playClip(15000); // Play full clip as celebration
         } else if (result.canContinue) {
             // Wrong, but can still try
             UI.showWrongGuess();
@@ -396,7 +397,9 @@ const App = {
         } else {
             // Wrong and no more attempts
             const lastResult = this.game.results[this.game.results.length - 1];
-            UI.showRoundResult(false, lastResult.track, 0);
+            const videoId = this._searchedVideos.get(this.game.currentRound - 1);
+            UI.showReveal(lastResult.track, videoId, false, 0);
+            this.player.playClip(15000); // Reveal what it was!
         }
     },
 
@@ -411,7 +414,9 @@ const App = {
         } else {
             // No more skips — failed
             const lastResult = this.game.results[this.game.results.length - 1];
-            UI.showRoundResult(false, lastResult.track, 0);
+            const videoId = this._searchedVideos.get(this.game.currentRound - 1);
+            UI.showReveal(lastResult.track, videoId, false, 0);
+            this.player.playClip(15000); // Reveal what it was!
         }
     },
 
@@ -421,6 +426,7 @@ const App = {
         if (this.game.nextRound()) {
             await this._startRound();
         } else {
+            this.player.stop();
             this._showSummary();
         }
     },

@@ -166,6 +166,41 @@ const UI = {
         }
     },
 
+    showReveal(track, videoId, isCorrect, points) {
+        const reveal = document.getElementById('reveal-container');
+        const inputArea = document.getElementById('guess-area');
+        
+        document.getElementById('reveal-image').src = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        document.getElementById('reveal-title').textContent = track.name;
+        document.getElementById('reveal-artist').textContent = track.artist;
+        
+        const status = document.getElementById('reveal-status');
+        if (isCorrect) {
+            status.textContent = `Correct! +${points} pts`;
+            status.style.color = '#4ade80';
+        } else {
+            status.textContent = 'Out of attempts!';
+            status.style.color = '#f87171';
+        }
+        
+        // Restart animation
+        reveal.classList.remove('animate-reveal');
+        void reveal.offsetWidth; // trigger reflow
+        
+        if (inputArea) inputArea.classList.add('hidden');
+        if (reveal) {
+            reveal.classList.remove('hidden');
+            reveal.classList.add('animate-reveal');
+        }
+    },
+
+    hideReveal() {
+        const reveal = document.getElementById('reveal-container');
+        const inputArea = document.getElementById('guess-area');
+        if (reveal) reveal.classList.add('hidden');
+        if (inputArea) inputArea.classList.remove('hidden');
+    },
+
     resetGuessInput() {
         const input = document.getElementById('guess-input');
         const submit = document.getElementById('submit-btn');
