@@ -59,7 +59,7 @@ const CONFIG = {
     //
     // After setup, Apple Music playlists will work for ALL users automatically.
     //
-    APPLE_MUSIC_WORKER_URL: 'https://music-proxy.alf-krutina.workers.dev', 
+    WORKER_URL: 'https://music-proxy.alf-krutina.workers.dev', 
 
     // Fallback CORS proxies (used if worker is not configured; usually blocked by Apple)
     CORS_PROXIES: [

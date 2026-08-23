@@ -288,7 +288,7 @@ const PlaylistLoader = {
         let html = null;
 
         // ── Step 1: Try Cloudflare Worker (primary, reliable) ──────────────
-        const workerUrl = CONFIG.APPLE_MUSIC_WORKER_URL;
+        const workerUrl = CONFIG.WORKER_URL;
         let proxyReturned404 = false;
         
         if (workerUrl && workerUrl.trim()) {
