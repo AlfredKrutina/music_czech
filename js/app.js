@@ -168,7 +168,7 @@ const App = {
         this._currentSeed = seed;
         
         // Use Global Hits or 2010s as the daily challenge playlist
-        const dailyUrl = "https://music.apple.com/us/playlist/2010s-hits-essentials/pl.80164c06fc29415cb62112a201c13bc3";
+        const dailyUrl = "https://music.apple.com/us/playlist/10s-pop-essentials/pl.801ed8fb7eb0407a9dc8870123533ec7";
         
         // Force 10 rounds
         const roundsSelect = document.getElementById('rounds-select');
