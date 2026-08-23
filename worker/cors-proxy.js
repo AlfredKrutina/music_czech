@@ -43,10 +43,10 @@ export default {
             'Accept-Language': 'en-US,en;q=0.9',
           }
         });
-        
+
         const html = await ytResponse.text();
         const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-        
+
         if (match && match[1]) {
           return corsResponse(JSON.stringify({ videoId: match[1] }), 200, 'application/json');
         } else {
@@ -56,6 +56,34 @@ export default {
         return corsResponse(JSON.stringify({ error: err.message }), 502, 'application/json');
       }
     }
+
+    // ─── YOUTUBE PLAYLIST SEARCH ENDPOINT ──────────────────────────────
+    if (url.pathname === '/youtube-playlist') {
+      const query = url.searchParams.get('q');
+      if (!query) return corsResponse(JSON.stringify({ error: 'Missing ?q=' }), 400, 'application/json');
+
+      try {
+        const ytUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query + ' playlist') + '&sp=EgIQAw%253D%253D';
+        const ytResponse = await fetch(ytUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+          }
+        });
+
+        const html = await ytResponse.text();
+        const match = html.match(/"playlistId":"([a-zA-Z0-9_-]+)"/);
+
+        if (match && match[1]) {
+          return corsResponse(JSON.stringify({ playlistId: match[1] }), 200, 'application/json');
+        } else {
+          return corsResponse(JSON.stringify({ error: 'No playlist found' }), 404, 'application/json');
+        }
+      } catch (err) {
+        return corsResponse(JSON.stringify({ error: err.message }), 502, 'application/json');
+      }
+    }
+
     // ─── SPOTIFY SCRAPER ENDPOINT ──────────────────────────────────────
     if (url.pathname === '/spotify') {
       const playlistId = url.searchParams.get('id');
@@ -68,20 +96,20 @@ export default {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           }
         });
-        
+
         const html = await response.text();
         const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
-        
+
         if (match && match[1]) {
           const data = JSON.parse(match[1]);
           const trackList = data.props?.pageProps?.state?.data?.entity?.trackList;
           if (trackList) {
-             const cleanTracks = trackList.map(t => ({
-                name: t.title,
-                artist: t.subtitle,
-                coverUrl: t.coverArt?.sources?.[0]?.url || ''
-             }));
-             return corsResponse(JSON.stringify({ tracks: cleanTracks }), 200, 'application/json');
+            const cleanTracks = trackList.map(t => ({
+              name: t.title,
+              artist: t.subtitle,
+              coverUrl: t.coverArt?.sources?.[0]?.url || ''
+            }));
+            return corsResponse(JSON.stringify({ tracks: cleanTracks }), 200, 'application/json');
           }
         }
         return corsResponse(JSON.stringify({ error: 'Failed to extract Spotify data' }), 404, 'application/json');
@@ -107,25 +135,25 @@ export default {
         try {
           const body = await request.json();
           const { name, score, maxScore, timeMs } = body;
-          
+
           if (!name || typeof score !== 'number' || typeof maxScore !== 'number' || typeof timeMs !== 'number') {
-             return corsResponse(JSON.stringify({ error: 'Invalid payload' }), 400, 'application/json');
+            return corsResponse(JSON.stringify({ error: 'Invalid payload' }), 400, 'application/json');
           }
 
           const cleanName = name.trim().substring(0, 20);
           if (!cleanName) return corsResponse(JSON.stringify({ error: 'Name cannot be empty' }), 400, 'application/json');
-          
+
           let leaderboard = await KV.get(seed, 'json') || [];
           leaderboard.push({ name: cleanName, score, maxScore, timeMs, date: new Date().toISOString() });
-          
+
           // Sort descending by score, then ascending by timeMs
           leaderboard.sort((a, b) => {
-             if (b.score !== a.score) return b.score - a.score;
-             return a.timeMs - b.timeMs;
+            if (b.score !== a.score) return b.score - a.score;
+            return a.timeMs - b.timeMs;
           });
-          
+
           leaderboard = leaderboard.slice(0, 20); // Keep top 20
-          
+
           await KV.put(seed, JSON.stringify(leaderboard));
           return corsResponse(JSON.stringify(leaderboard), 200, 'application/json');
         } catch (e) {

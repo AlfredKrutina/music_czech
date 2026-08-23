@@ -49,12 +49,24 @@
                 </button>
             </section>
 
-            <!-- Curated Modes -->
-            <section class="card" id="curated-modes-section">
+            <!-- Infinite Search -->
+            <section class="card" id="infinite-search-section">
                 <h3 class="card-title">
-                    <span class="card-icon"><i data-lucide="sparkles"></i></span> Quick Play: Modes
+                    <span class="card-icon"><i data-lucide="search"></i></span> Any Artist or Genre
                 </h3>
-                <p class="card-desc">Choose a predefined playlist to start instantly</p>
+                <p class="card-desc">Type any artist, band, or genre in the world</p>
+                <div class="input-group" style="margin-bottom: 0.75rem;">
+                    <input type="text" id="infinite-search-input"
+                           placeholder="e.g. Eminem, Rock 80s, Hans Zimmer..."
+                           spellcheck="false"
+                           autocomplete="off">
+                    <button id="infinite-search-btn" class="btn btn-primary">
+                        <span>Play</span>
+                    </button>
+                </div>
+                
+                <!-- Quick suggestions -->
+                <div style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 0.5rem;">Or pick a classic vibe:</div>
                 <div id="curated-modes-container" class="curated-modes-container">
                     <!-- Populated by JS -->
                 </div>
@@ -278,15 +290,15 @@
          SCRIPTS (order matters — dependencies first)
          ═══════════════════════════════════════════════════════════════ -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-    <script src="js/config.js?v=11"></script>
-    <script src="js/fuzzy.js?v=11"></script>
-    <script src="js/auth.js?v=11"></script>
-    <script src="js/search.js?v=11"></script>
-    <script src="js/player.js?v=11"></script>
-    <script src="js/playlist.js?v=11"></script>
-    <script src="js/game.js?v=11"></script>
-    <script src="js/ui.js?v=11"></script>
-    <script src="js/app.js?v=11"></script>
+    <script src="js/config.js?v=12"></script>
+    <script src="js/fuzzy.js?v=12"></script>
+    <script src="js/auth.js?v=12"></script>
+    <script src="js/search.js?v=12"></script>
+    <script src="js/player.js?v=12"></script>
+    <script src="js/playlist.js?v=12"></script>
+    <script src="js/game.js?v=12"></script>
+    <script src="js/ui.js?v=12"></script>
+    <script src="js/app.js?v=12"></script>
     <script>
         // Initialize Lucide icons after DOM is ready
         document.addEventListener('DOMContentLoaded', () => lucide.createIcons());

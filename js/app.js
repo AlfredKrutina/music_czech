@@ -110,6 +110,10 @@ const App = {
         this._on('playlist-url-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._loadPlaylist();
         });
+        this._on('infinite-search-btn', 'click', () => this._searchAndLoad());
+        this._on('infinite-search-input', 'keydown', (e) => {
+            if (e.key === 'Enter') this._searchAndLoad();
+        });
 
         // --- Game screen ---
         this._on('play-btn', 'click', () => this._playClip());
@@ -421,6 +425,55 @@ const App = {
 
         UI.setPlayButtonState('ready');
     },
+
+    // ─── Infinite Search ─────────────────────────────────────────────
+
+    async _searchAndLoad() {
+        const input = document.getElementById('infinite-search-input');
+        if (!input) return;
+        const query = input.value.trim();
+        if (!query) {
+            UI.showToast('Please enter an artist or genre!', 'error');
+            return;
+        }
+
+        if (!CONFIG.WORKER_URL) {
+            UI.showToast('Cloudflare Worker URL is required for searching!', 'error');
+            return;
+        }
+
+        const originalBtnText = document.getElementById('infinite-search-btn').innerHTML;
+        document.getElementById('infinite-search-btn').innerHTML = '<span><div class="loading-spinner" style="width: 14px; height: 14px; display: inline-block; border-width: 2px;"></div></span>';
+        document.getElementById('infinite-search-btn').disabled = true;
+
+        try {
+            const response = await fetch(`${CONFIG.WORKER_URL}/youtube-playlist?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error('Search failed');
+            const data = await response.json();
+            
+            if (data.error || !data.playlistId) {
+                throw new Error(data.error || 'Playlist not found on YouTube');
+            }
+
+            // Create a fake URL so _loadPlaylist processes it as a YouTube playlist
+            const ytUrl = `https://www.youtube.com/playlist?list=${data.playlistId}`;
+            this._loadPlaylist(ytUrl);
+        } catch (e) {
+            console.error('Search error:', e);
+            UI.showToast(`Could not find a playlist for "${query}"`, 'error');
+        } finally {
+            document.getElementById('infinite-search-btn').innerHTML = originalBtnText;
+            document.getElementById('infinite-search-btn').disabled = false;
+        }
+    },
+
+    // ─── Playlist Loading ────────────────────────────────────────────
+
+    async _loadPlaylist(url = null) {
+        if (!url) {
+            const input = document.getElementById('playlist-url-input');
+            url = input ? input.value.trim() : '';
+        }
 
     // ─── Guessing ────────────────────────────────────────────────────
 

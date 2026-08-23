@@ -60,36 +60,49 @@ const UI = {
         
         if (!CONFIG.PREDEFINED_PLAYLISTS) return;
 
-        for (const [categoryName, items] of Object.entries(CONFIG.PREDEFINED_PLAYLISTS)) {
-            const categoryDiv = document.createElement('div');
-            categoryDiv.className = 'modes-category';
-            
-            const title = document.createElement('h4');
-            title.className = 'modes-category-title';
-            title.textContent = categoryName;
-            categoryDiv.appendChild(title);
+        const select = document.createElement('select');
+        select.className = 'select-input';
+        select.style.width = '100%';
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '--- Select a curated vibe ---';
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
+        select.appendChild(defaultOption);
 
-            const grid = document.createElement('div');
-            grid.className = 'modes-grid';
+        for (const [categoryName, items] of Object.entries(CONFIG.PREDEFINED_PLAYLISTS)) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = categoryName;
 
             items.forEach(item => {
-                const chip = document.createElement('div');
-                chip.className = 'mode-chip';
-                chip.textContent = item.name;
-                chip.title = item.url;
-                
-                if (onModeSelected) {
-                    chip.addEventListener('click', () => {
-                        onModeSelected(item.url);
-                    });
-                }
-                
-                grid.appendChild(chip);
+                const option = document.createElement('option');
+                option.value = item.url || item.name;
+                option.textContent = item.name;
+                optgroup.appendChild(option);
             });
 
-            categoryDiv.appendChild(grid);
-            container.appendChild(categoryDiv);
+            select.appendChild(optgroup);
         }
+
+        if (onModeSelected) {
+            select.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val) {
+                    if (val.startsWith('http')) {
+                        onModeSelected(val);
+                    } else {
+                        // If it's just a name, search it!
+                        const searchInput = document.getElementById('infinite-search-input');
+                        if (searchInput) searchInput.value = val;
+                        document.getElementById('infinite-search-btn')?.click();
+                    }
+                    select.value = ''; // reset after selection
+                }
+            });
+        }
+        
+        container.appendChild(select);
     },
 
     getPlaylistUrl() {
