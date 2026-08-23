@@ -236,37 +236,55 @@ const PlaylistLoader = {
     },
 
     async _fetchPipedPlaylist(instance, playlistId, onProgress) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 12000);
+        let allTracks = [];
+        let nextpage = null;
+        let page = 0;
+        const MAX_PAGES = 10;
 
-        try {
-            const response = await fetch(
-                `${instance}/playlists/${playlistId}`,
-                { signal: controller.signal }
-            );
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        do {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 12000);
 
-            const data = await response.json();
-            const streams = data.relatedStreams || [];
+            try {
+                let endpoint;
+                if (page === 0) {
+                    endpoint = `${instance}/playlists/${playlistId}`;
+                } else {
+                    endpoint = `${instance}/nextpage/playlists/${playlistId}?nextpage=${encodeURIComponent(nextpage)}`;
+                }
 
-            const tracks = streams
-                .filter(v => v.url && v.title)
-                .map(v => {
-                    const videoId = v.url.replace('/watch?v=', '');
-                    const parts = this._splitArtistTitle(v.title, v.uploaderName);
-                    return {
-                        name: parts.title,
-                        artist: parts.artist,
-                        videoId: videoId,
-                        displayName: `${parts.artist} — ${parts.title}`
-                    };
-                });
+                const response = await fetch(endpoint, { signal: controller.signal });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            if (onProgress) onProgress(tracks.length, tracks.length, 'Playlist loaded!');
-            return tracks;
-        } finally {
-            clearTimeout(timeout);
-        }
+                const data = await response.json();
+                const streams = (data.relatedStreams || []);
+
+                const tracks = streams
+                    .filter(v => v.url && v.title)
+                    .map(v => {
+                        const videoId = v.url.split('?v=')[1]?.split('&')[0] || '';
+                        const parts = this._splitArtistTitle(v.title, v.uploaderName);
+                        return {
+                            name: parts.title,
+                            artist: parts.artist,
+                            videoId: videoId,
+                            displayName: `${parts.artist} — ${parts.title}`
+                        };
+                    })
+                    .filter(t => t.videoId); // Only tracks with valid videoId
+
+                allTracks = allTracks.concat(tracks);
+                if (onProgress) onProgress(allTracks.length, allTracks.length, `Fetched ${allTracks.length} tracks...`);
+
+                nextpage = data.nextpage || null;
+                page++;
+            } finally {
+                clearTimeout(timeout);
+            }
+        } while (nextpage && page < MAX_PAGES);
+
+        if (onProgress) onProgress(allTracks.length, allTracks.length, 'Playlist loaded!');
+        return allTracks;
     },
 
     /**
@@ -310,7 +328,18 @@ const PlaylistLoader = {
         let html = null;
 
         // Try each CORS proxy
-        for (const proxy of CONFIG.CORS_PROXIES) {
+        for (let pi = 0; pi < CONFIG.CORS_PROXIES.length; pi++) {
+            const proxy = CONFIG.CORS_PROXIES[pi];
+
+            // Skip the local proxy if we are not running locally
+            const isLocalProxy = proxy.startsWith('/');
+            if (isLocalProxy && !window.location.hostname.match(/^(localhost|127\.|0\.0\.0\.0|::1)/)) {
+                continue;
+            }
+
+            const proxyLabel = isLocalProxy ? 'local proxy' : new URL(proxy).hostname;
+            if (onProgress) onProgress(0, 0, `Trying ${proxyLabel}...`);
+
             try {
                 const proxyUrl = proxy + encodeURIComponent(url.trim());
                 const controller = new AbortController();
@@ -322,7 +351,10 @@ const PlaylistLoader = {
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 html = await response.text();
 
-                if (html && html.length > 500) break; // got a real page
+                // Validate: must be a real Apple Music page (not a proxy error page or 404 page)
+                if (html && html.length > 1000 && (html.includes('music.apple.com') || html.includes('apple-music') || html.includes('MusicPlaylist') || html.includes('serialized-server-data'))) {
+                    break; // Got a real Apple Music page
+                }
                 html = null;
             } catch (e) {
                 console.warn(`CORS proxy failed (${proxy}):`, e.message);
@@ -332,7 +364,7 @@ const PlaylistLoader = {
         if (!html) {
             throw new Error(
                 'Could not fetch the Apple Music playlist page.\n' +
-                'Make sure you are running the game using start.sh or start.bat so the local proxy is running.\n\n' +
+                'All CORS proxy services failed. This may be a temporary issue — please try again.\n\n' +
                 'Tip: You can also convert your playlist to Spotify or YouTube Music using ' +
                 'sites like TuneMyMusic.com or Soundiiz.com.'
             );
@@ -412,59 +444,70 @@ const PlaylistLoader = {
     /**
      * Parse Apple's "shoebox" server-rendered data blocks.
      * Apple embeds serialized data in <script id="serialized-server-data">
+     *
+     * Uses iterative BFS with an explicit stack to avoid stack overflow
+     * on large playlists (500+ tracks create deeply nested JSON).
      */
     _parseAppleMusicShoebox(html) {
-        const tracks = [];
-
         // Look for the new serialized-server-data block
         const dataRegex = /id="serialized-server-data"[^>]*>([\s\S]*?)<\/script>/i;
         const match = dataRegex.exec(html);
 
-        if (match) {
-            try {
-                const data = JSON.parse(match[1]);
-                
-                function findTracks(obj) {
-                    if (!obj || typeof obj !== 'object') return;
-                    
-                    if (Array.isArray(obj)) {
-                        for (const item of obj) findTracks(item);
-                        return;
-                    }
-                    
-                    // The track object contains artistName and title
-                    if (obj.artistName && obj.title && obj.id && (obj.playAction || obj.kind === 'song' || obj.contentDescriptor)) {
-                        tracks.push({
-                            name: obj.title,
-                            artist: obj.artistName,
-                            displayName: `${obj.artistName} — ${obj.title}`
-                        });
-                    }
-                    
-                    for (const key in obj) {
-                        findTracks(obj[key]);
-                    }
-                }
-                
-                findTracks(data);
-                
-                // Deduplicate tracks (the data structure often contains duplicates)
-                const uniqueTracks = [];
-                const seen = new Set();
-                for (const t of tracks) {
-                    if (!seen.has(t.displayName)) {
-                        seen.add(t.displayName);
-                        uniqueTracks.push(t);
-                    }
-                }
-                
-                return uniqueTracks;
+        if (!match) return [];
 
-            } catch (e) {
-                console.warn('Failed to parse serialized-server-data:', e);
+        let rootData;
+        try {
+            rootData = JSON.parse(match[1]);
+        } catch (e) {
+            console.warn('Failed to parse serialized-server-data:', e);
+            return [];
+        }
+
+        const tracks = [];
+        const seen = new Set();
+
+        // Iterative BFS using an explicit stack — avoids call stack overflow
+        // on deeply nested Apple Music JSON objects.
+        const stack = [rootData];
+        const MAX_NODES = 100000; // Safety: stop after visiting this many nodes
+        let visited = 0;
+
+        while (stack.length > 0 && visited < MAX_NODES) {
+            const obj = stack.pop();
+            visited++;
+
+            if (!obj || typeof obj !== 'object') continue;
+
+            if (Array.isArray(obj)) {
+                for (const item of obj) stack.push(item);
+                continue;
+            }
+
+            // The track object contains artistName and title
+            if (obj.artistName && obj.title && obj.id &&
+                (obj.playAction || obj.kind === 'song' || obj.contentDescriptor)) {
+                const key = `${obj.artistName}|${obj.title}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    tracks.push({
+                        name: obj.title,
+                        artist: obj.artistName,
+                        displayName: `${obj.artistName} — ${obj.title}`
+                    });
+                }
+            }
+
+            // Push all object values onto the stack for further traversal
+            for (const key in obj) {
+                const val = obj[key];
+                if (val && typeof val === 'object') stack.push(val);
             }
         }
-        
+
+        if (visited >= MAX_NODES) {
+            console.warn('Apple Music shoebox: MAX_NODES limit reached, result may be partial.');
+        }
+
         return tracks;
     },
 

@@ -8,7 +8,7 @@ A **Heardle-style** music guessing game that plays short audio clips (0.5s → 1
 
 ## 🎮 How to Play
 
-1. **Load a Playlist** — Paste any public Spotify, Apple Music, or YouTube Music playlist URL. *(Note: Apple Music requires running the game locally with the provided python proxy server).*
+1. **Load a Playlist** — Paste any public Spotify, Apple Music, or YouTube Music playlist URL.
 2. **Listen to the snippet** — Click play to hear a tiny slice of the song. It starts at just **500ms**! The game automatically skips silent video intros to make sure you hear the actual music.
 3. **Guess the song** — Type the song name or artist into the search box. The game will autocomplete from tracks in your playlist. Select your answer and hit submit.
 4. **Skip for more time** — If you don't know it, you can skip to hear a longer clip. Each skip extends the clip length: `0.5s → 1s → 2s → 4s → 8s → 16s`.
@@ -88,6 +88,7 @@ To load Spotify playlists, you need a **free** Spotify Developer Client ID:
 | **Spotify** | `https://open.spotify.com/playlist/xxxxx` | Yes (Client ID) |
 | **YouTube Music** | `https://music.youtube.com/playlist?list=xxxxx` | No |
 | **YouTube** | `https://www.youtube.com/playlist?list=xxxxx` | No |
+| **Apple Music** | `https://music.apple.com/.../playlist/xxxxx` | No |
 
 ---
 

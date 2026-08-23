@@ -19,6 +19,7 @@ class AudioPlayer {
         this._errorCallback = null;
         this._loadResolve = null;
         this._loadReject = null;
+        this._loadFallbackTimeout = null; // tracks fallback timer so it can be cancelled on error
     }
 
     /**
@@ -50,7 +51,10 @@ class AudioPlayer {
             if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
                 const tag = document.createElement('script');
                 tag.src = 'https://www.youtube.com/iframe_api';
-                tag.onerror = () => reject(new Error('Failed to load YouTube IFrame API'));
+                tag.onerror = () => {
+                    this._readyPromise = null; // allow retry
+                    reject(new Error('Failed to load YouTube IFrame API. Check your internet connection.'));
+                };
                 const firstScript = document.getElementsByTagName('script')[0];
                 firstScript.parentNode.insertBefore(tag, firstScript);
             }
@@ -58,6 +62,7 @@ class AudioPlayer {
             // Timeout after 15 seconds
             setTimeout(() => {
                 if (!this._ready) {
+                    this._readyPromise = null; // allow retry
                     reject(new Error('YouTube API load timeout (15s). Check your internet connection.'));
                 }
             }, 15000);
@@ -121,17 +126,33 @@ class AudioPlayer {
         const code = event.data;
         console.error('YouTube player error code:', code);
 
+        // Cancel the fallback resolve timeout so it doesn't call resolve after reject
+        if (this._loadFallbackTimeout) {
+            clearTimeout(this._loadFallbackTimeout);
+            this._loadFallbackTimeout = null;
+        }
+
+        // Translate error code to a human-readable message
+        const errorMessages = {
+            2:   'Invalid video ID.',
+            5:   'HTML5 player error.',
+            100: 'Video not found or is private.',
+            101: 'Embedding disabled by the video owner.',
+            150: 'Embedding disabled by the video owner.'
+        };
+        const message = errorMessages[code] || `YouTube player error (code ${code}).`;
+
         // Reject any pending load
         if (this._loadReject) {
             const reject = this._loadReject;
             this._loadResolve = null;
             this._loadReject = null;
-            reject(new Error(`YouTube error ${code}`));
+            reject(new Error(message));
         }
 
         // Notify external error handler
         if (this._errorCallback) {
-            this._errorCallback(code);
+            this._errorCallback(code, message);
         }
     }
 
@@ -203,7 +224,9 @@ class AudioPlayer {
 
             // Resolve after timeout even if state event didn't fire
             // (YouTube sometimes doesn't fire CUED for short videos)
-            setTimeout(() => {
+            // Store the timeout ID so _onError can cancel it (prevents resolve-after-reject race).
+            this._loadFallbackTimeout = setTimeout(() => {
+                this._loadFallbackTimeout = null;
                 if (this._loadResolve) {
                     const res = this._loadResolve;
                     this._loadResolve = null;

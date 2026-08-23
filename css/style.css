@@ -29,7 +29,7 @@ html {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: #0a0a0f;
     color: #e8e8f0;
     min-height: 100vh;
@@ -100,7 +100,18 @@ a:hover {
 }
 
 .card-icon {
-    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.3rem;
+    height: 1.3rem;
+    color: #6366f1;
+    flex-shrink: 0;
+}
+.card-icon svg {
+    width: 100%;
+    height: 100%;
+    stroke-width: 2;
 }
 
 .card-desc {
@@ -252,9 +263,23 @@ input:disabled {
 }
 
 .logo-icon {
-    font-size: 4rem;
-    margin-bottom: 0.5rem;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(29,185,84,0.15));
+    border-radius: 24px;
+    border: 1px solid rgba(99,102,241,0.3);
+    box-shadow: 0 8px 32px rgba(99,102,241,0.2);
     animation: bounce 2s ease-in-out infinite;
+}
+.logo-icon svg {
+    width: 36px;
+    height: 36px;
+    color: #818cf8;
+    stroke-width: 1.5;
 }
 
 @keyframes bounce {
@@ -454,6 +479,25 @@ input:disabled {
 
 .play-icon {
     line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.play-icon svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    stroke-width: 1.5;
+}
+
+/* Loading spinner icon inside play button */
+.icon-spin {
+    animation: spin 1s linear infinite;
+    display: flex;
+}
+.icon-spin svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    stroke-width: 1.5;
 }
 
 .duration-label {
@@ -686,6 +730,11 @@ input:disabled {
     justify-content: center;
     animation: resultPop 0.4s ease-out;
 }
+.result-icon svg {
+    width: 3rem;
+    height: 3rem;
+    stroke-width: 2.5;
+}
 .result-icon.correct {
     background: rgba(34, 197, 94, 0.15);
     color: #22c55e;
@@ -868,9 +917,38 @@ input:disabled {
     font-weight: 700;
     min-width: 30px;
     text-align: right;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
 .breakdown-row.correct .breakdown-pts { color: #22c55e; }
 .breakdown-row.wrong .breakdown-pts { color: #ef4444; }
+
+/* Small inline icon (e.g. ✗ in breakdown) */
+.inline-icon {
+    display: inline-flex;
+    vertical-align: middle;
+}
+.inline-icon svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    stroke-width: 2.5;
+}
+
+/* Lucide icons in buttons (e.g. Play Again) */
+.btn i, .btn svg {
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    margin-right: 0.3em;
+    stroke-width: 2;
+}
+
+/* Arrow icon at end of button (no left margin, small right offset) */
+.btn-arrow-icon {
+    margin-right: 0 !important;
+    margin-left: 0.25em;
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    HIDDEN YOUTUBE PLAYER
@@ -1041,4 +1119,23 @@ input:disabled {
 ::selection {
     background: rgba(99, 102, 241, 0.3);
     color: #e8e8f0;
+}
+
+/* Footer heart icon */
+.footer-heart {
+    display: inline-flex;
+    vertical-align: middle;
+    width: 0.85rem;
+    height: 0.85rem;
+    color: #ef4444;
+    margin: 0 0.15em;
+    position: relative;
+    top: -1px;
+}
+.footer-heart svg {
+    width: 100%;
+    height: 100%;
+    stroke-width: 2;
+    fill: #ef4444;
+    stroke: #ef4444;
 }

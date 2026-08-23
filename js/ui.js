@@ -150,20 +150,22 @@ const UI = {
 
         switch (state) {
             case 'ready':
-                if (icon) icon.textContent = '▶';
+                if (icon) icon.innerHTML = '<i data-lucide="play"></i>';
                 btn.disabled = false;
                 break;
             case 'playing':
-                if (icon) icon.textContent = '♪';
+                if (icon) icon.innerHTML = '<i data-lucide="music"></i>';
                 btn.classList.add('playing');
                 btn.disabled = true;
                 break;
             case 'loading':
-                if (icon) icon.textContent = '⏳';
+                if (icon) icon.innerHTML = '<i data-lucide="loader-2" class="icon-spin"></i>';
                 btn.classList.add('loading-state');
                 btn.disabled = true;
                 break;
         }
+
+        if (window.lucide) lucide.createIcons();
     },
 
     showReveal(track, videoId, isCorrect, points) {
@@ -311,7 +313,9 @@ const UI = {
         const pointsContainer = document.getElementById('result-points-container');
 
         if (icon) {
-            icon.textContent = correct ? '✓' : '✗';
+            icon.innerHTML = correct
+                ? '<i data-lucide="check"></i>'
+                : '<i data-lucide="x"></i>';
             icon.className = `result-icon ${correct ? 'correct' : 'wrong'}`;
         }
         if (title) {
@@ -325,6 +329,7 @@ const UI = {
             pointsContainer.className = `result-points ${correct ? 'earned' : 'zero'}`;
         }
 
+        if (window.lucide) lucide.createIcons();
         this.showScreen('screen-result');
     },
 
@@ -351,11 +356,12 @@ const UI = {
                     <span class="breakdown-num">#${i + 1}</span>
                     <span class="breakdown-track">${this._escapeHtml(r.track.displayName)}</span>
                     <span class="breakdown-dots">${this._renderDots(r.attempts, r.correct)}</span>
-                    <span class="breakdown-pts">${r.correct ? '+' + r.points : '✗'}</span>
+                    <span class="breakdown-pts">${r.correct ? '+' + r.points : '<i data-lucide="x" class="inline-icon"></i>'}</span>
                 </div>
             `).join('');
         }
 
+        if (window.lucide) lucide.createIcons();
         this.showScreen('screen-summary');
     },
 
@@ -371,13 +377,13 @@ const UI = {
         let html = '';
         for (let i = 0; i < max; i++) {
             if (i < attempts - 1) {
-                html += '<span class="mini-dot skipped">●</span>';
+                html += '<span class="mini-dot skipped">&#9679;</span>';
             } else if (i === attempts - 1) {
                 html += correct
-                    ? '<span class="mini-dot hit">●</span>'
-                    : '<span class="mini-dot miss">●</span>';
+                    ? '<span class="mini-dot hit">&#9679;</span>'
+                    : '<span class="mini-dot miss">&#9679;</span>';
             } else {
-                html += '<span class="mini-dot unused">○</span>';
+                html += '<span class="mini-dot unused">&#9675;</span>';
             }
         }
         return html;
@@ -413,18 +419,16 @@ const UI = {
             requestAnimationFrame(() => toast.classList.add('visible'));
         });
 
-        // Auto-dismiss only for non-error toasts
-        if (type !== 'error') {
-            setTimeout(() => {
-                // only remove if it hasn't been manually closed
-                if (toast.parentNode) {
-                    toast.classList.remove('visible');
-                    setTimeout(() => {
-                        if (toast.parentNode) toast.remove();
-                    }, 400);
-                }
-            }, 4000);
-        }
+        // Auto-dismiss: errors after 10s, others after 4s
+        const dismissDelay = type === 'error' ? 10000 : 4000;
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.classList.remove('visible');
+                setTimeout(() => {
+                    if (toast.parentNode) toast.remove();
+                }, 400);
+            }
+        }, dismissDelay);
     },
 
     // ─── Visual Feedback ─────────────────────────────────────────────
@@ -434,6 +438,26 @@ const UI = {
         if (!input) return;
         input.classList.add('shake');
         setTimeout(() => input.classList.remove('shake'), 600);
+    },
+
+    /**
+     * Show or hide the Cancel button on the loading screen.
+     * @param {boolean} visible
+     * @param {function} [onCancel] - Callback when Cancel is clicked
+     */
+    setCancelButton(visible, onCancel) {
+        let btn = document.getElementById('cancel-loading-btn');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = 'cancel-loading-btn';
+            btn.className = 'btn btn-secondary';
+            btn.textContent = 'Cancel';
+            btn.style.marginTop = '1.5rem';
+            const container = document.querySelector('.loading-container');
+            if (container) container.appendChild(btn);
+        }
+        btn.style.display = visible ? '' : 'none';
+        btn.onclick = onCancel || null;
     },
 
     // ─── Helpers ─────────────────────────────────────────────────────

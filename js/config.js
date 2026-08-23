@@ -30,24 +30,31 @@ const CONFIG = {
     YOUTUBE_SEARCH: {
         INVIDIOUS: [
             'https://inv.tux.pizza',
-            'https://invidious.fdn.fr',
-            'https://vid.puffyan.us',
-            'https://invidious.nerdvpn.de',
+            'https://invidious.privacyredirect.com',
             'https://yewtu.be',
-            'https://invidious.lunar.icu',
-            'https://invidious.jing.rocks',
-            'https://invidious.privacyredirect.com'
+            'https://invidious.nerdvpn.de',
+            'https://invidious.fdn.fr',
+            'https://iv.datura.network',
+            'https://invidious.io.lol',
+            'https://invidious.lunar.icu'
         ],
         PIPED: [
             'https://pipedapi.kavin.rocks',
             'https://piped-api.privacy.com.de',
             'https://pipedapi.tokhmi.xyz',
-            'https://pipedapi.syncpundit.io'
+            'https://pipedapi.syncpundit.io',
+            'https://api.piped.projectsegfau.lt'
         ]
     },
 
-    // Local proxy for Apple Music to bypass Apple's blocks on public CORS proxies
+    // CORS proxies for fetching Apple Music playlist pages.
+    // The local proxy (first) is used when running via start.sh / start.bat.
+    // Public proxies are fallbacks for GitHub Pages and other static hosting.
     CORS_PROXIES: [
-        '/api/proxy?url='
+        '/api/proxy?url=',
+        'https://corsproxy.io/?url=',
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.org/?url=',
+        'https://thingproxy.freeboard.io/fetch/'
     ]
 };

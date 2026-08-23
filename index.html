@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵 Music Guess — Song Guessing Game</title>
+    <title>Music Guess — Song Guessing Game</title>
     <meta name="description" content="Guess the song from a tiny audio clip! Heardle-style music quiz using your Spotify or YouTube Music playlists.">
 
-    <!-- Favicon (emoji-based) -->
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
 
     <!-- Stylesheet -->
     <link rel="stylesheet" href="css/style.css">
@@ -20,7 +28,9 @@
         <div class="container setup-container">
             <!-- Logo -->
             <header class="logo-section">
-                <div class="logo-icon">🎵</div>
+                <div class="logo-icon">
+                    <i data-lucide="music-2"></i>
+                </div>
                 <h1 class="logo-title">Music Guess</h1>
                 <p class="logo-subtitle">Guess the song from a tiny clip!</p>
             </header>
@@ -28,7 +38,7 @@
             <!-- Spotify Client ID -->
             <section class="card" id="spotify-config">
                 <h3 class="card-title">
-                    <span class="card-icon">🟢</span> Spotify Configuration
+                    <span class="card-icon"><i data-lucide="music"></i></span> Spotify Configuration
                 </h3>
                 <p class="card-desc">
                     Enter your Client ID from the
@@ -48,7 +58,7 @@
             <!-- Playlist URL -->
             <section class="card">
                 <h3 class="card-title">
-                    <span class="card-icon">📋</span> Load Playlist
+                    <span class="card-icon"><i data-lucide="list-music"></i></span> Load Playlist
                 </h3>
                 <p class="card-desc">Paste a Spotify or YouTube Music playlist URL</p>
                 <div class="input-group">
@@ -65,7 +75,7 @@
             <!-- Game Options -->
             <section class="card">
                 <h3 class="card-title">
-                    <span class="card-icon">⚙️</span> Game Options
+                    <span class="card-icon"><i data-lucide="sliders-horizontal"></i></span> Game Options
                 </h3>
                 <div class="options-row">
                     <label for="rounds-select">Number of rounds:</label>
@@ -79,7 +89,7 @@
             </section>
 
             <footer class="setup-footer">
-                <p>Built with ♪ — No backend required</p>
+                <p>Built with <i data-lucide="heart" class="footer-heart"></i> — No backend required</p>
             </footer>
         </div>
     </div>
@@ -118,7 +128,7 @@
             <!-- Play button area -->
             <div class="player-area">
                 <button id="play-btn" class="play-button" disabled aria-label="Play audio clip">
-                    <span class="play-icon">⏳</span>
+                    <span class="play-icon" id="play-icon-inner"><i data-lucide="play"></i></span>
                 </button>
                 <div class="duration-label" id="duration-label">500ms</div>
             </div>
@@ -136,7 +146,7 @@
                 </div>
                 <h2 id="reveal-title" class="reveal-title"></h2>
                 <h3 id="reveal-artist" class="reveal-artist"></h3>
-                <button id="next-round-btn-inline" class="btn btn-primary" style="margin-top: 1rem;">Next Round ➔</button>
+                <button id="next-round-btn-inline" class="btn btn-primary" style="margin-top: 1rem;">Next Round <i data-lucide="arrow-right" class="btn-arrow-icon"></i></button>
             </div>
 
             <!-- Guess input area -->
@@ -168,7 +178,7 @@
          ═══════════════════════════════════════════════════════════════ -->
     <div id="screen-result" class="screen" aria-hidden="true">
         <div class="container result-container">
-            <div id="result-icon" class="result-icon correct">✓</div>
+            <div id="result-icon" class="result-icon correct"><i data-lucide="check"></i></div>
             <h2 id="result-title" class="result-heading correct">Correct!</h2>
 
             <div class="result-track-info">
@@ -207,7 +217,7 @@
             </div>
 
             <button id="play-again-btn" class="btn btn-primary btn-lg">
-                🔄 Play Again
+                <i data-lucide="rotate-ccw"></i> Play Again
             </button>
         </div>
     </div>
@@ -231,5 +241,9 @@
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
+    <script>
+        // Initialize Lucide icons after DOM is ready
+        document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+    </script>
 </body>
 </html>

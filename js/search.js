@@ -1,11 +1,15 @@
 /**
  * search.js — YouTube video search via Invidious & Piped public APIs.
- * No API key required. Includes instance failover and result caching.
+ * No API key required. Includes instance failover, result caching, and
+ * session-level blacklisting of failed instances.
  */
 const YouTubeSearch = {
     _cache: new Map(),
+    _cacheOrder: [],          // LRU tracking: insertion order of cache keys
+    _cacheMaxSize: 250,
     _workingInvidious: null,
     _workingPiped: null,
+    _failedInstances: new Set(), // Instances that failed this session
 
     /**
      * Search for a YouTube video matching the given artist + track name.
@@ -48,7 +52,9 @@ const YouTubeSearch = {
         }
 
         // Final Fallback: Local Server Proxy (scrapes YouTube directly)
-        if (!result) {
+        // Only try when running locally — GH Pages has no backend.
+        const isLocal = window.location.hostname.match(/^(localhost|127\.|0\.0\.0\.0|::1)/);
+        if (!result && isLocal) {
             try {
                 const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
                 if (response.ok) {
@@ -67,22 +73,44 @@ const YouTubeSearch = {
         }
 
         if (result) {
-            this._cache.set(cacheKey, result);
+            this._setCache(cacheKey, result);
         }
 
         return result;
     },
 
     /**
+     * Store a result in the LRU cache, evicting oldest entry if over limit.
+     * @private
+     */
+    _setCache(key, value) {
+        if (this._cache.has(key)) {
+            // Remove old position in order array
+            const idx = this._cacheOrder.indexOf(key);
+            if (idx !== -1) this._cacheOrder.splice(idx, 1);
+        } else if (this._cache.size >= this._cacheMaxSize) {
+            // Evict the oldest entry
+            const oldest = this._cacheOrder.shift();
+            if (oldest) this._cache.delete(oldest);
+        }
+        this._cache.set(key, value);
+        this._cacheOrder.push(key);
+    },
+
+    /**
      * Try a list of instances, starting with the known-good one.
+     * Skips instances that have already failed this session.
      */
     async _tryInstances(instances, preferredInstance, searchFn) {
-        // Build ordered list: preferred first, then the rest
-        const ordered = preferredInstance
+        // Build ordered list: preferred first (if not blacklisted), then the rest
+        const ordered = preferredInstance && !this._failedInstances.has(preferredInstance)
             ? [preferredInstance, ...instances.filter(i => i !== preferredInstance)]
             : [...instances];
 
-        for (const instance of ordered) {
+        // Filter out blacklisted instances
+        const available = ordered.filter(i => !this._failedInstances.has(i));
+
+        for (const instance of available) {
             try {
                 const result = await searchFn(instance);
                 if (result) {
@@ -91,6 +119,11 @@ const YouTubeSearch = {
                 }
             } catch (e) {
                 console.warn(`Search instance ${instance} failed:`, e.message);
+                // Blacklist this instance for the rest of the session
+                this._failedInstances.add(instance);
+                // Reset preferred instance if it just failed
+                if (instance === this._workingInvidious) this._workingInvidious = null;
+                if (instance === this._workingPiped) this._workingPiped = null;
             }
         }
         return null;
@@ -222,11 +255,13 @@ const YouTubeSearch = {
     },
 
     /**
-     * Clear the search cache.
+     * Clear the search cache and reset session state.
      */
     clearCache() {
         this._cache.clear();
+        this._cacheOrder = [];
         this._workingInvidious = null;
         this._workingPiped = null;
+        this._failedInstances.clear();
     }
 };

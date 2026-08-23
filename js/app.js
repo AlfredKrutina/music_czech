@@ -11,6 +11,8 @@ const App = {
     game: null,
     _searchedVideos: new Map(), // round index → videoId
     _selectedTrack: null,       // currently selected autocomplete track
+    _loadingCancelled: false,   // flag to abort playlist loading mid-search
+    _clipPlaying: false,        // guard against double-click on play button
 
     // ─── Initialization ──────────────────────────────────────────────
 
@@ -20,11 +22,28 @@ const App = {
 
         UI.init();
         this._bindEvents();
+        this._registerGlobalErrorHandler();
         UI.showScreen('screen-setup');
 
         // Pre-initialize YouTube player (non-blocking)
         this.player.init().catch(e => {
             console.warn('YouTube player pre-init failed (will retry later):', e.message);
+        });
+    },
+
+    /**
+     * Catch any unhandled Promise rejections and surface them as error toasts
+     * instead of silently failing in the console.
+     * @private
+     */
+    _registerGlobalErrorHandler() {
+        window.addEventListener('unhandledrejection', (event) => {
+            const msg = event.reason?.message || String(event.reason) || 'An unexpected error occurred.';
+            // Don't show toasts for aborted fetches (user-initiated)
+            if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('cancel')) return;
+            console.error('Unhandled rejection:', event.reason);
+            UI.showToast(`Unexpected error: ${msg}`, 'error');
+            event.preventDefault(); // Suppress browser's default console error
         });
     },
 
@@ -88,11 +107,11 @@ const App = {
         const clientId = input ? input.value.trim() : '';
 
         if (!clientId) {
-            UI.showClientIdError('⚠ Please enter a Client ID');
+            UI.showClientIdError('Please enter a Client ID');
             return;
         }
         if (clientId.length < 10) {
-            UI.showClientIdError('⚠ Client ID seems too short');
+            UI.showClientIdError('Client ID seems too short — check the Spotify dashboard');
             return;
         }
 
@@ -121,14 +140,23 @@ const App = {
         }
 
         // Switch to loading screen
+        this._loadingCancelled = false;
         UI.showScreen('screen-loading');
         UI.updateLoadingProgress(0, 0, 'Connecting...');
+        UI.setCancelButton(true, () => {
+            this._loadingCancelled = true;
+            UI.showScreen('screen-setup');
+            UI.setCancelButton(false);
+            UI.showToast('Loading cancelled.', 'info');
+        });
 
         try {
             // Step 1: Fetch playlist tracks
             const tracks = await PlaylistLoader.loadPlaylist(url, (current, total, msg) => {
                 UI.updateLoadingProgress(current, total, msg);
             });
+
+            if (this._loadingCancelled) return;
 
             if (!tracks || tracks.length === 0) {
                 throw new Error('Playlist is empty or could not be loaded.');
@@ -149,13 +177,16 @@ const App = {
 
             let searched = 0;
             for (let i = 0; i < gameTracks.length; i++) {
+                // Check if user cancelled
+                if (this._loadingCancelled) return;
+
                 const track = gameTracks[i];
 
                 if (track.videoId) {
                     // YouTube playlist tracks already have videoId
                     this._searchedVideos.set(i, track.videoId);
                 } else {
-                    // Search YouTube for Spotify tracks
+                    // Search YouTube for Spotify/Apple Music tracks
                     try {
                         const result = await YouTubeSearch.search(track.artist, track.name);
                         if (result) {
@@ -181,6 +212,8 @@ const App = {
                 }
             }
 
+            if (this._loadingCancelled) return;
+
             // Check results
             const foundCount = this._searchedVideos.size;
             if (foundCount === 0) {
@@ -197,11 +230,15 @@ const App = {
                 );
             }
 
+            UI.setCancelButton(false);
+
             // Step 4: Start the first round
             await this._startRound();
 
         } catch (e) {
+            if (this._loadingCancelled) return; // Silently ignore if user cancelled
             console.error('Playlist load error:', e);
+            UI.setCancelButton(false);
             UI.showToast(e.message || 'Failed to load playlist', 'error');
             UI.showScreen('screen-setup');
         }
@@ -267,9 +304,12 @@ const App = {
     },
 
     async _playClip() {
+        // Guard against double-click (button might have a render delay)
+        if (this._clipPlaying) return;
         const btn = document.getElementById('play-btn');
         if (btn && btn.disabled) return;
 
+        this._clipPlaying = true;
         UI.setPlayButtonState('playing');
 
         const durationMs = this.game.getCurrentDurationMs();
@@ -279,6 +319,8 @@ const App = {
         } catch (e) {
             console.error('Playback error:', e);
             UI.showToast('Playback failed. Try again.', 'error');
+        } finally {
+            this._clipPlaying = false;
         }
 
         UI.setPlayButtonState('ready');
