@@ -72,7 +72,7 @@ const CONFIG = {
     // ─── Curated Modes (Predefined Playlists & Vibe searches) ─────────────────
     PREDEFINED_PLAYLISTS: {
         "Decades": [
-            { name: "2010s Pop Hits", url: "https://music.apple.com/us/playlist/10s-pop-essentials/pl.801ed8fb7eb0407a9dc8870123533ec7" },
+            { name: "2010s Pop Hits", url: "https://open.spotify.com/playlist/37i9dQZF1DX5Ejj0EkURtP" },
             { name: "2000s Pop Hits", url: "https://music.apple.com/us/playlist/00s-pop-essentials/pl.f4d106fed2bd41149aaacabb233eb5eb" },
             { name: "90s Pop Hits", url: "https://music.apple.com/us/playlist/90s-pop-essentials/pl.5ee8333dbe944d9f9151e0f6f707ce56" },
             { name: "80s Pop Hits", url: "https://music.apple.com/us/playlist/80s-pop-essentials/pl.7c94b73347b74f32997e06a3ec02ba6d" }

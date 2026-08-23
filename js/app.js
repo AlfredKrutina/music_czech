@@ -169,8 +169,12 @@ const App = {
         Math.setSeed(seed);
         this._currentSeed = seed;
         
-        // Use Global Hits or 2010s as the daily challenge playlist
-        const dailyUrl = "https://music.apple.com/us/playlist/10s-pop-essentials/pl.801ed8fb7eb0407a9dc8870123533ec7";
+        // Hide the main menu
+        document.getElementById('screen-setup').classList.remove('active');
+        
+        // Use Spotify's "Today's Top Hits" for the daily challenge
+        const dailyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M";
+        this._loadPlaylist(dailyUrl);
         
         // Force 10 rounds
         const roundsSelect = document.getElementById('rounds-select');
