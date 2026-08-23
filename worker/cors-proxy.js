@@ -29,6 +29,35 @@ export default {
     }
 
     const url = new URL(request.url);
+
+    // ─── YOUTUBE SEARCH ENDPOINT ───────────────────────────────────────
+    if (url.pathname === '/youtube') {
+      const query = url.searchParams.get('q');
+      if (!query) return corsResponse(JSON.stringify({ error: 'Missing ?q=' }), 400, 'application/json');
+
+      try {
+        const ytUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
+        const ytResponse = await fetch(ytUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+          }
+        });
+        
+        const html = await ytResponse.text();
+        const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
+        
+        if (match && match[1]) {
+          return corsResponse(JSON.stringify({ videoId: match[1] }), 200, 'application/json');
+        } else {
+          return corsResponse(JSON.stringify({ error: 'No video found' }), 404, 'application/json');
+        }
+      } catch (err) {
+        return corsResponse(JSON.stringify({ error: err.message }), 502, 'application/json');
+      }
+    }
+
+    // ─── APPLE MUSIC CORS PROXY ────────────────────────────────────────
     const targetUrl = url.searchParams.get('url');
 
     if (!targetUrl) {
@@ -38,7 +67,7 @@ export default {
     let parsedTarget;
     try {
       parsedTarget = new URL(targetUrl);
-    } catch {
+    } catch (e) {
       return corsResponse(JSON.stringify({ error: 'Invalid target URL' }), 400, 'application/json');
     }
 

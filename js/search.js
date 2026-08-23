@@ -25,19 +25,45 @@ const YouTubeSearch = {
 
         let result = null;
 
-        // Try Invidious instances (prefer last working one)
-        result = await this._tryInstances(
-            CONFIG.YOUTUBE_SEARCH.INVIDIOUS,
-            this._workingInvidious,
-            (instance) => this._searchInvidious(query, artist, trackName, instance)
-        );
+        // 1. PRIMARY: Try Cloudflare Worker proxy if configured
+        if (CONFIG.APPLE_MUSIC_WORKER_URL) {
+            try {
+                const workerUrl = CONFIG.APPLE_MUSIC_WORKER_URL.replace(/\/$/, '') + '/youtube?q=' + encodeURIComponent(query);
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 8000);
+                const response = await fetch(workerUrl, { signal: controller.signal });
+                clearTimeout(timeout);
 
-        if (result && result._instance) {
-            this._workingInvidious = result._instance;
-            delete result._instance;
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.videoId) {
+                        result = {
+                            videoId: data.videoId,
+                            title: trackName,
+                            channel: artist
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('Worker YouTube search failed:', e.message);
+            }
         }
 
-        // Fallback to Piped
+        // 2. FALLBACK 1: Try Invidious instances
+        if (!result) {
+            result = await this._tryInstances(
+                CONFIG.YOUTUBE_SEARCH.INVIDIOUS,
+                this._workingInvidious,
+                (instance) => this._searchInvidious(query, artist, trackName, instance)
+            );
+
+            if (result && result._instance) {
+                this._workingInvidious = result._instance;
+                delete result._instance;
+            }
+        }
+
+        // 3. FALLBACK 2: Fallback to Piped
         if (!result) {
             result = await this._tryInstances(
                 CONFIG.YOUTUBE_SEARCH.PIPED,
@@ -51,7 +77,7 @@ const YouTubeSearch = {
             }
         }
 
-        // Final Fallback: Local Server Proxy (scrapes YouTube directly)
+        // 4. FALLBACK 3: Local Server Proxy (scrapes YouTube directly)
         // Only try when running locally — GH Pages has no backend.
         const isLocal = window.location.hostname.match(/^(localhost|127\.|0\.0\.0\.0|::1)/);
         if (!result && isLocal) {
