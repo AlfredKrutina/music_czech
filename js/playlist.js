@@ -319,54 +319,109 @@ const PlaylistLoader = {
     // ─── Apple Music ─────────────────────────────────────────────────
 
     /**
-     * Load tracks from an Apple Music playlist via CORS proxy + HTML parsing.
-     * Apple Music pages embed JSON-LD (schema.org MusicPlaylist) with track data.
+     * Load tracks from an Apple Music playlist.
+     *
+     * Strategy:
+     *   1. Cloudflare Worker proxy (fast, reliable — set APPLE_MUSIC_WORKER_URL in config.js)
+     *   2. Local dev proxy (only when running on localhost)
+     *   3. Fallback public CORS proxies (usually blocked by Apple, shown as last resort)
      */
     async _loadAppleMusic(url, onProgress) {
         if (onProgress) onProgress(0, 0, 'Fetching Apple Music playlist...');
 
         let html = null;
 
-        // Try each CORS proxy
-        for (let pi = 0; pi < CONFIG.CORS_PROXIES.length; pi++) {
-            const proxy = CONFIG.CORS_PROXIES[pi];
-
-            // Skip the local proxy if we are not running locally
-            const isLocalProxy = proxy.startsWith('/');
-            if (isLocalProxy && !window.location.hostname.match(/^(localhost|127\.|0\.0\.0\.0|::1)/)) {
-                continue;
-            }
-
-            const proxyLabel = isLocalProxy ? 'local proxy' : new URL(proxy).hostname;
-            if (onProgress) onProgress(0, 0, `Trying ${proxyLabel}...`);
-
+        // ── Step 1: Try Cloudflare Worker (primary, reliable) ──────────────
+        const workerUrl = CONFIG.APPLE_MUSIC_WORKER_URL;
+        if (workerUrl && workerUrl.trim()) {
+            if (onProgress) onProgress(0, 0, 'Connecting to proxy...');
             try {
-                const proxyUrl = proxy + encodeURIComponent(url.trim());
+                const endpoint = workerUrl.trim().replace(/\/$/, '') + '?url=' + encodeURIComponent(url.trim());
                 const controller = new AbortController();
                 const timeout = setTimeout(() => controller.abort(), 15000);
 
-                const response = await fetch(proxyUrl, { signal: controller.signal });
+                const response = await fetch(endpoint, { signal: controller.signal });
                 clearTimeout(timeout);
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                html = await response.text();
-
-                // Validate: must be a real Apple Music page (not a proxy error page or 404 page)
-                if (html && html.length > 1000 && (html.includes('music.apple.com') || html.includes('apple-music') || html.includes('MusicPlaylist') || html.includes('serialized-server-data'))) {
-                    break; // Got a real Apple Music page
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.length > 1000 &&
+                        (text.includes('serialized-server-data') ||
+                         text.includes('music.apple.com') ||
+                         text.includes('MusicPlaylist'))) {
+                        html = text;
+                    }
                 }
-                html = null;
             } catch (e) {
-                console.warn(`CORS proxy failed (${proxy}):`, e.message);
+                console.warn('Cloudflare Worker proxy failed:', e.message);
             }
         }
 
+        // ── Step 2: Local dev proxy (localhost only) ───────────────────────
+        const isLocal = window.location.hostname.match(/^(localhost|127\.|0\.0\.0\.0|::1)/);
+        if (!html && isLocal) {
+            if (onProgress) onProgress(0, 0, 'Trying local proxy...');
+            try {
+                const proxyUrl = '/api/proxy?url=' + encodeURIComponent(url.trim());
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 15000);
+                const response = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (response.ok) {
+                    const text = await response.text();
+                    if (text && text.length > 1000 &&
+                        (text.includes('serialized-server-data') || text.includes('MusicPlaylist'))) {
+                        html = text;
+                    }
+                }
+            } catch (e) {
+                console.warn('Local proxy failed:', e.message);
+            }
+        }
+
+        // ── Step 3: Fallback public CORS proxies ───────────────────────────
         if (!html) {
+            for (const proxy of CONFIG.CORS_PROXIES) {
+                if (proxy.startsWith('/')) continue; // already tried local above
+                const proxyLabel = new URL(proxy).hostname;
+                if (onProgress) onProgress(0, 0, `Trying ${proxyLabel}...`);
+
+                try {
+                    const proxyUrl = proxy + encodeURIComponent(url.trim());
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 12000);
+                    const response = await fetch(proxyUrl, { signal: controller.signal });
+                    clearTimeout(timeout);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const text = await response.text();
+                    if (text && text.length > 1000 &&
+                        (text.includes('serialized-server-data') || text.includes('music.apple.com') || text.includes('MusicPlaylist'))) {
+                        html = text;
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`CORS proxy failed (${proxy}):`, e.message);
+                }
+            }
+        }
+
+        // ── No proxy worked ────────────────────────────────────────────────
+        if (!html) {
+            if (!workerUrl || !workerUrl.trim()) {
+                // Worker not configured — give actionable setup instructions
+                throw new Error(
+                    'Apple Music requires a one-time proxy setup.\n\n' +
+                    'Quick setup (free, 5 minutes):\n' +
+                    '  1. Go to workers.cloudflare.com → Create free account\n' +
+                    '  2. Create Worker → paste code from worker/cors-proxy.js\n' +
+                    '  3. Deploy → copy URL → paste into js/config.js\n\n' +
+                    'Alternatively, convert your playlist to Spotify or YouTube Music\n' +
+                    'at TuneMyMusic.com (free).'
+                );
+            }
             throw new Error(
-                'Could not fetch the Apple Music playlist page.\n' +
-                'All CORS proxy services failed. This may be a temporary issue — please try again.\n\n' +
-                'Tip: You can also convert your playlist to Spotify or YouTube Music using ' +
-                'sites like TuneMyMusic.com or Soundiiz.com.'
+                'Could not fetch the Apple Music playlist.\n' +
+                'The proxy may be temporarily unavailable. Please try again in a moment.'
             );
         }
 

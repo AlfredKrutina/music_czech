@@ -3,7 +3,6 @@
  */
 const CONFIG = {
     // Clip durations for each attempt (seconds)
-    // Starts at 0.5s because YouTube's audio buffer often swallows shorter clips
     SKIP_DURATIONS: [0.5, 1.0, 2.0, 4.0, 8.0, 16.0],
 
     // Points awarded per attempt (index matches SKIP_DURATIONS)
@@ -47,14 +46,27 @@ const CONFIG = {
         ]
     },
 
-    // CORS proxies for fetching Apple Music playlist pages.
-    // The local proxy (first) is used when running via start.sh / start.bat.
-    // Public proxies are fallbacks for GitHub Pages and other static hosting.
+    // ─── Apple Music Configuration ────────────────────────────────────────────
+    //
+    // Apple Music requires a server-side proxy because browsers block
+    // cross-origin requests to music.apple.com.
+    //
+    // SETUP (one-time, 5 minutes, free):
+    //   1. Go to https://workers.cloudflare.com → create a free account
+    //   2. Click "Create Worker" → paste the code from worker/cors-proxy.js
+    //   3. Click "Save & Deploy" → copy the URL (e.g. https://xxx.workers.dev)
+    //   4. Paste it below as WORKER_URL
+    //
+    // After setup, Apple Music playlists will work for ALL users automatically.
+    //
+    APPLE_MUSIC_WORKER_URL: '', // <-- paste your worker URL here after deployment
+
+    // Fallback CORS proxies (used if worker is not configured; usually blocked by Apple)
     CORS_PROXIES: [
-        '/api/proxy?url=',
+        '/api/proxy?url=',              // local dev server only
         'https://corsproxy.io/?url=',
         'https://api.allorigins.win/raw?url=',
         'https://corsproxy.org/?url=',
-        'https://thingproxy.freeboard.io/fetch/'
     ]
 };
+
