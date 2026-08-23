@@ -119,6 +119,29 @@ class AudioPlayer {
                 resolve();
             }
         }
+
+        // Handle precise clip timing
+        if (state === YT.PlayerState.PLAYING && this._pendingClipDuration > 0) {
+            // Audio just started! Start the precise pause timer now.
+            const duration = this._pendingClipDuration;
+            this._pendingClipDuration = 0; // consume it
+            
+            // Clear the fallback timeout since it actually started playing
+            if (this._clipFallbackTimeout) {
+                clearTimeout(this._clipFallbackTimeout);
+                this._clipFallbackTimeout = null;
+            }
+            
+            this._clipTimeout = setTimeout(() => {
+                this._player.pauseVideo();
+                this._clipTimeout = null;
+                if (this._clipResolve) {
+                    const res = this._clipResolve;
+                    this._clipResolve = null;
+                    res();
+                }
+            }, duration);
+        }
     }
 
     /** @private */
@@ -254,6 +277,10 @@ class AudioPlayer {
             this._cancelClip();
 
             this._clipResolve = resolve;
+            
+            // Store the duration so _onStateChange can start the timer 
+            // exactly when the audio starts (bypassing buffering delays).
+            this._pendingClipDuration = durationMs;
 
             // Seek to true start of the music (skipping intros)
             const start = this._currentStartSeconds || 0;
@@ -261,17 +288,11 @@ class AudioPlayer {
             this._player.unMute();
             this._player.setVolume(100);
             this._player.playVideo();
-
-            // Schedule pause after duration
-            this._clipTimeout = setTimeout(() => {
-                this._player.pauseVideo();
-                this._clipTimeout = null;
-                if (this._clipResolve) {
-                    const res = this._clipResolve;
-                    this._clipResolve = null;
-                    res();
-                }
-            }, durationMs);
+            
+            // Fallback timeout in case YouTube gets stuck buffering indefinitely
+            this._clipFallbackTimeout = setTimeout(() => {
+                this._cancelClip();
+            }, durationMs + 4000);
         });
     }
 
@@ -293,9 +314,14 @@ class AudioPlayer {
 
     /** @private */
     _cancelClip() {
+        this._pendingClipDuration = 0;
         if (this._clipTimeout) {
             clearTimeout(this._clipTimeout);
             this._clipTimeout = null;
+        }
+        if (this._clipFallbackTimeout) {
+            clearTimeout(this._clipFallbackTimeout);
+            this._clipFallbackTimeout = null;
         }
         if (this._clipResolve) {
             const res = this._clipResolve;

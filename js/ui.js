@@ -180,6 +180,16 @@ const UI = {
         if (isCorrect) {
             status.textContent = `Correct! +${points} pts`;
             status.style.color = '#4ade80';
+            
+            // Fire confetti!
+            if (window.confetti) {
+                confetti({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#4ade80', '#60a5fa', '#f472b6', '#fbbf24', '#c084fc']
+                });
+            }
         } else {
             status.textContent = 'Out of attempts!';
             status.style.color = '#f87171';
