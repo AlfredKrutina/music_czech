@@ -323,8 +323,11 @@ class AudioPlayer {
             
             // Fallback timeout in case YouTube gets stuck buffering indefinitely
             this._clipFallbackTimeout = setTimeout(() => {
+                const reject = this._clipReject;
+                this._clipFallbackTimeout = null;
                 this._cancelClip();
-            }, durationMs + 4000);
+                if (reject) reject(new Error('Audio playback timed out. Video might be region-blocked.'));
+            }, 6000);
         });
     }
 

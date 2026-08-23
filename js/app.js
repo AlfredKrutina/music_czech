@@ -192,17 +192,21 @@ const App = {
 
 
 
-    async _loadPlaylist(predefinedUrl = null) {
-        const url = predefinedUrl || UI.getPlaylistUrl();
+    async _loadPlaylist(predefinedUrl = null, customPlaylistId = null) {
+        const isCustomTracks = Array.isArray(predefinedUrl);
+        const url = isCustomTracks ? 'custom' : (predefinedUrl || UI.getPlaylistUrl());
         if (!url) {
             UI.showToast('Please enter a playlist URL', 'error');
             return;
         }
 
-        const platform = MusicFetcher.detectPlatform(url);
-        if (!platform) {
-            UI.showToast('Unsupported URL. Use Spotify or YouTube Music playlist links.', 'error');
-            return;
+        let platform = 'custom';
+        if (!isCustomTracks) {
+            platform = MusicFetcher.detectPlatform(url);
+            if (!platform) {
+                UI.showToast('Unsupported URL. Use Spotify or YouTube Music playlist links.', 'error');
+                return;
+            }
         }
 
         // Spotify scraper is used via Cloudflare Worker, no auth needed!
@@ -222,13 +226,19 @@ const App = {
         this._loadingCancelled = false;
         
         // Store the url for sharing
-        this._currentPlaylistUrl = url;
+        this._currentPlaylistUrl = isCustomTracks ? '' : url;
 
         try {
             // Step 1: Fetch playlist tracks
-            const tracks = await MusicFetcher.loadPlaylist(url, (current, total, msg) => {
-                UI.updateLoadingProgress(current, total, msg);
-            });
+            let tracks = [];
+            if (isCustomTracks) {
+                tracks = predefinedUrl;
+                UI.updateLoadingProgress(tracks.length, tracks.length, 'Loaded search results!');
+            } else {
+                tracks = await MusicFetcher.loadPlaylist(url, (current, total, msg) => {
+                    UI.updateLoadingProgress(current, total, msg);
+                });
+            }
 
             if (this._loadingCancelled) return;
 
@@ -240,14 +250,15 @@ const App = {
             UI.showToast(`Loaded ${tracks.length} tracks!`, 'success');
 
             // Step 2: Extract clean playlist ID for the leaderboard key
-            let cleanPlaylistId = 'unknown';
-            if (platform === 'spotify') {
-                const sp = MusicFetcher.parseSpotifyId(url);
-                if (sp) cleanPlaylistId = sp.id;
-            } else if (platform === 'youtube') {
-                const yt = MusicFetcher.parseYouTubeId(url);
-                if (yt) cleanPlaylistId = yt;
-            } else if (platform === 'apple') {
+            let cleanPlaylistId = customPlaylistId || 'unknown';
+            if (!isCustomTracks) {
+                if (platform === 'spotify') {
+                    const sp = MusicFetcher.parseSpotifyId(url);
+                    if (sp) cleanPlaylistId = sp.id;
+                } else if (platform === 'youtube') {
+                    const yt = MusicFetcher.parseYouTubeId(url);
+                    if (yt) cleanPlaylistId = yt;
+                } else if (platform === 'apple') {
                 const match = url.match(/pl\.[a-zA-Z0-9]+/);
                 if (match) cleanPlaylistId = match[0];
             }
@@ -481,30 +492,48 @@ const App = {
             return;
         }
 
-        if (!CONFIG.WORKER_URL) {
-            UI.showToast('Cloudflare Worker URL is required for searching!', 'error');
-            return;
-        }
-
         const originalBtnText = document.getElementById('infinite-search-btn').innerHTML;
         document.getElementById('infinite-search-btn').innerHTML = '<span><div class="loading-spinner" style="width: 14px; height: 14px; display: inline-block; border-width: 2px;"></div></span>';
         document.getElementById('infinite-search-btn').disabled = true;
 
         try {
-            const response = await fetch(`${CONFIG.WORKER_URL}/youtube-playlist?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=50`);
             if (!response.ok) throw new Error('Search failed');
             const data = await response.json();
             
-            if (data.error || !data.playlistId) {
-                throw new Error(data.error || 'Playlist not found on YouTube');
+            if (!data.results || data.results.length < 5) {
+                throw new Error('Not enough songs found for this search.');
             }
 
-            // Create a fake URL so _loadPlaylist processes it as a YouTube playlist
-            const ytUrl = `https://www.youtube.com/playlist?list=${data.playlistId}`;
-            this._loadPlaylist(ytUrl);
+            // Convert iTunes results to our track format
+            let allTracks = data.results.map(track => {
+                return {
+                    name: track.trackName,
+                    artist: track.artistName,
+                    displayName: `${track.artistName} — ${track.trackName}`
+                };
+            });
+
+            // Remove duplicates
+            const uniqueTracks = [];
+            const seen = new Set();
+            for (const t of allTracks) {
+                const key = t.displayName.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueTracks.push(t);
+                }
+            }
+
+            if (uniqueTracks.length < 5) {
+                throw new Error('Not enough unique songs found for this search.');
+            }
+
+            // Start game directly using _loadPlaylist array override
+            this._loadPlaylist(uniqueTracks, `search_${encodeURIComponent(query).replace(/[^a-zA-Z0-9]/g, '')}`);
         } catch (e) {
             console.error('Search error:', e);
-            UI.showToast(`Could not find a playlist for "${query}"`, 'error');
+            UI.showToast(e.message || `Could not find enough tracks for "${query}"`, 'error');
         } finally {
             document.getElementById('infinite-search-btn').innerHTML = originalBtnText;
             document.getElementById('infinite-search-btn').disabled = false;

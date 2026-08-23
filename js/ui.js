@@ -396,6 +396,12 @@ const UI = {
                 bgLayer.style.filter = 'blur(0px) brightness(1)';
                 bgLayer.style.opacity = '1';
             }
+        } else {
+            if (resultImage) resultImage.src = '';
+            if (bgLayer) {
+                bgLayer.style.backgroundImage = 'none';
+                bgLayer.style.opacity = '0';
+            }
         }
 
         if (icon) {
