@@ -38,7 +38,12 @@
                 <p class="logo-subtitle">Guess the song from a tiny clip!</p>
             </header>
 
+            <div class="setup-tabs" style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem;">
+                <button id="tab-play" class="btn btn-primary" style="flex: 1;">Play</button>
+                <button id="tab-leaderboards" class="btn btn-secondary" style="flex: 1;"><i data-lucide="trophy"></i> Leaderboards</button>
+            </div>
 
+            <div id="setup-content-play">
             <section class="card" id="daily-challenge-section" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%); border-color: rgba(99, 102, 241, 0.3);">
                 <h3 class="card-title" style="color: #818cf8;">
                     <span class="card-icon"><i data-lucide="calendar"></i></span> Daily Challenge
@@ -123,7 +128,26 @@
                         Show Blurred Background
                     </label>
                 </div>
-            </section>
+            </div>
+
+            <div id="setup-content-leaderboards" style="display: none;">
+                <section class="card">
+                    <h3 class="card-title">
+                        <span class="card-icon"><i data-lucide="trophy"></i></span> Global Leaderboards
+                    </h3>
+                    <p class="card-desc">Select a leaderboard to view the top scores.</p>
+                    
+                    <div class="options-row">
+                        <select id="leaderboard-select" class="select-input" style="width: 100%;">
+                            <!-- Populated by JS (Daily Challenge + Curated) -->
+                        </select>
+                    </div>
+                    
+                    <div id="home-leaderboard-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
+                        <div style="text-align: center; color: #9ca3af; padding: 1rem;">Select a leaderboard...</div>
+                    </div>
+                </section>
+            </div>
 
             <footer class="setup-footer">
                 <p>Built with <i data-lucide="heart" class="footer-heart"></i> — No backend required</p>

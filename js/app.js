@@ -115,6 +115,31 @@ const App = {
         this._on('infinite-search-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._searchAndLoad();
         });
+        // --- Setup screen tabs ---
+        this._on('tab-play', 'click', () => {
+            const cp = document.getElementById('setup-content-play');
+            const cl = document.getElementById('setup-content-leaderboards');
+            const tp = document.getElementById('tab-play');
+            const tl = document.getElementById('tab-leaderboards');
+            if(cp) cp.style.display = 'block';
+            if(cl) cl.style.display = 'none';
+            if(tp) { tp.className = 'btn btn-primary'; tp.style.flex = '1'; }
+            if(tl) { tl.className = 'btn btn-secondary'; tl.style.flex = '1'; }
+        });
+        
+        this._on('tab-leaderboards', 'click', () => {
+            const cp = document.getElementById('setup-content-play');
+            const cl = document.getElementById('setup-content-leaderboards');
+            const tp = document.getElementById('tab-play');
+            const tl = document.getElementById('tab-leaderboards');
+            if(cp) cp.style.display = 'none';
+            if(cl) cl.style.display = 'block';
+            if(tp) { tp.className = 'btn btn-secondary'; tp.style.flex = '1'; }
+            if(tl) { tl.className = 'btn btn-primary'; tl.style.flex = '1'; }
+            this._loadHomeLeaderboards();
+        });
+        
+        this._on('leaderboard-select', 'change', () => this._fetchSelectedLeaderboard());
 
         // --- Game screen ---
         this._on('quit-game-btn', 'click', () => this._quitGame());
@@ -855,6 +880,108 @@ const App = {
             list.innerHTML = '';
             if (!data || data.length === 0) {
                 list.innerHTML = '<div style="text-align: center; color: #9ca3af;">No scores yet. Be the first!</div>';
+                return;
+            }
+
+            data.forEach((entry, idx) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.justifyContent = 'space-between';
+                row.style.padding = '0.5rem';
+                row.style.background = idx === 0 ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.05)';
+                row.style.borderRadius = '0.25rem';
+                
+                const rankName = document.createElement('div');
+                let medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+                rankName.innerHTML = `<span style="display:inline-block; width: 24px; color: #fbbf24;">${medal}</span> <strong>${this._escapeHtml(entry.name)}</strong>`;
+                
+                const scoreTime = document.createElement('div');
+                const timeStr = entry.timeMs ? (entry.timeMs / 1000).toFixed(1) + 's' : '';
+                scoreTime.innerHTML = `<span style="color: #4ade80;">${entry.score}/${entry.maxScore}</span> <small style="color: #9ca3af; margin-left: 0.5rem;">${timeStr}</small>`;
+                
+                row.appendChild(rankName);
+                row.appendChild(scoreTime);
+                list.appendChild(row);
+            });
+        } catch (e) {
+            list.innerHTML = `<div style="text-align: center; color: #ef4444;">Failed to load leaderboard.</div>`;
+        }
+    },
+
+    _loadHomeLeaderboards() {
+        const select = document.getElementById('leaderboard-select');
+        if (!select) return;
+        
+        select.innerHTML = '';
+        
+        // Add Daily Challenge
+        const dateStr = new Date().toISOString().split('T')[0];
+        const dailyBoardId = `daily_challenge_${dateStr}`;
+        const dailyOpt = document.createElement('option');
+        dailyOpt.value = dailyBoardId;
+        dailyOpt.textContent = `Daily Challenge (${dateStr})`;
+        select.appendChild(dailyOpt);
+
+        // Add Curated Modes (we'll just use a default configuration for them: 10 rounds, beginning, text)
+        let playlists = CONFIG.PREDEFINED_PLAYLISTS;
+        if (!playlists && CONFIG.CURATED_MODES) {
+            playlists = { "Curated": CONFIG.CURATED_MODES };
+        }
+        
+        if (playlists) {
+            for (const [categoryName, items] of Object.entries(playlists)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = categoryName;
+
+                items.forEach(item => {
+                    const url = item.url || item.name;
+                    let cleanPlaylistId = 'unknown';
+                    const sp = MusicFetcher.parseSpotifyId(url);
+                    if (sp) cleanPlaylistId = sp.id;
+                    else {
+                        const yt = MusicFetcher.parseYouTubeId(url);
+                        if (yt) cleanPlaylistId = yt;
+                        else {
+                            const match = url.match(/pl\.[a-zA-Z0-9]+/);
+                            if (match) cleanPlaylistId = match[0];
+                        }
+                    }
+                    
+                    if (cleanPlaylistId !== 'unknown') {
+                        const boardId = `none_${cleanPlaylistId}_10_beginning_text`;
+                        const opt = document.createElement('option');
+                        opt.value = boardId;
+                        opt.textContent = `${item.name} (10 rounds, Normal)`;
+                        optgroup.appendChild(opt);
+                    }
+                });
+                if (optgroup.children.length > 0) select.appendChild(optgroup);
+            }
+        }
+        
+        this._fetchSelectedLeaderboard();
+    },
+
+    async _fetchSelectedLeaderboard() {
+        if (!CONFIG.WORKER_URL) return;
+        const select = document.getElementById('leaderboard-select');
+        const list = document.getElementById('home-leaderboard-list');
+        if (!select || !list) return;
+
+        const boardId = select.value;
+        if (!boardId) return;
+
+        list.innerHTML = '<div style="text-align: center; color: #9ca3af;"><i data-lucide="loader-2" class="icon-spin"></i> Loading...</div>';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const res = await fetch(`${CONFIG.WORKER_URL}/leaderboard?boardId=${boardId}`);
+            if (!res.ok) throw new Error('Network response was not ok');
+            const data = await res.json();
+            
+            list.innerHTML = '';
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #9ca3af;">No scores yet.</div>';
                 return;
             }
 
