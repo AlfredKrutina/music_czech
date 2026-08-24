@@ -278,34 +278,6 @@ const App = {
     },
 
     _mpSetupListeners() {
-        window.MP.on('UPDATE_PLAYERS', (data) => {
-            const list = document.getElementById('mp-player-list');
-            const count = document.getElementById('mp-player-count');
-            if (list && count) {
-                count.textContent = data.players.length;
-                list.innerHTML = '';
-                data.players.forEach(p => {
-                    const div = document.createElement('div');
-                    div.style.padding = '0.5rem';
-                    div.style.background = 'rgba(255,255,255,0.05)';
-                    div.style.borderRadius = '0.25rem';
-                    div.style.display = 'flex';
-                    div.style.justifyContent = 'space-between';
-                    
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = p.name + (p.id === window.MP.myId ? ' (You)' : '');
-                    
-                    const scoreSpan = document.createElement('span');
-                    scoreSpan.textContent = `${p.score} pts`;
-                    scoreSpan.style.color = '#4ade80';
-                    
-                    div.appendChild(nameSpan);
-                    div.appendChild(scoreSpan);
-                    list.appendChild(div);
-                });
-            }
-        });
-        
         window.MP.on('disconnected', () => {
             UI.showToast('Disconnected from host', 'error');
             this._mpLeaveRoom();
@@ -321,6 +293,35 @@ const App = {
         const payload = msg.payload || {};
         
         switch (msg.type) {
+            case 'UPDATE_PLAYERS': {
+                const list = document.getElementById('mp-player-list');
+                const count = document.getElementById('mp-player-count');
+                if (list && count) {
+                    count.textContent = payload.players.length;
+                    list.innerHTML = '';
+                    payload.players.forEach(p => {
+                        const div = document.createElement('div');
+                        div.style.padding = '0.5rem';
+                        div.style.background = 'rgba(255,255,255,0.05)';
+                        div.style.borderRadius = '0.25rem';
+                        div.style.display = 'flex';
+                        div.style.justifyContent = 'space-between';
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = p.name + (p.id === window.MP.myId ? ' (You)' : '');
+                        
+                        const scoreSpan = document.createElement('span');
+                        scoreSpan.textContent = `${p.score} pts`;
+                        scoreSpan.style.color = '#4ade80';
+                        
+                        div.appendChild(nameSpan);
+                        div.appendChild(scoreSpan);
+                        list.appendChild(div);
+                    });
+                }
+                break;
+            }
+
             case 'START_GAME':
                 this.game = new Game(payload.tracks, payload.totalRounds);
                 UI.showScreen('screen-game');
