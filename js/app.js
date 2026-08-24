@@ -350,15 +350,8 @@ const App = {
                 }
                 
                 UI.setPlayButtonState('ready');
-                document.getElementById('play-btn').disabled = true;
                 break;
-                
-            case 'PLAY_CLIP':
-                this._mpOverrideDuration = payload.durationMs;
-                this._isFromHost = true;
-                this._playClip();
-                this._isFromHost = false;
-                break;
+
                 
             case 'GUESS':
                 if (window.MP && window.MP.isHost) {
@@ -429,6 +422,9 @@ const App = {
                     
                 }
                 break;
+            case 'SKIP_VOTE_COUNT':
+                this._updateSkipButtonText(payload.votes, payload.total);
+                break;
                 
             case 'SKIP_VOTE':
                 if (window.MP && window.MP.isHost) {
@@ -443,6 +439,16 @@ const App = {
                     this._processSkipLocally();
                 }
                 break;
+        }
+    },
+
+    _updateSkipButtonText(votes, total) {
+        const btn = document.getElementById('skip-btn');
+        if (!btn) return;
+        if (btn.disabled) {
+            btn.textContent = `Voted! (${votes}/${total})`;
+        } else {
+            btn.textContent = `Skip (${votes}/${total})`;
         }
     },
 
@@ -846,17 +852,6 @@ const App = {
 
     async _playClip() {
         if (this._clipPlaying) return;
-        
-        // If Guest, we can't click Play. This is triggered by MP broadcast.
-        if (window.MP && window.MP.peer && !window.MP.isHost && !this._isFromHost) {
-            return; // Ignore local clicks if guest
-        }
-        
-        if (window.MP && window.MP.isHost && !this._isFromHost) {
-            window.MP.broadcast('PLAY_CLIP', { durationMs: this.game.getCurrentDurationMs() });
-            // Let the local broadcast loopback handle it!
-            return; 
-        }
 
         this._clipPlaying = true;
         UI.setPlayButtonState('playing');
@@ -886,12 +881,7 @@ const App = {
         // AUTOSKIPPER LOGIC
         const autoCheckbox = document.getElementById('autoskipper-checkbox');
         if (autoCheckbox && autoCheckbox.checked) {
-             if (window.MP && window.MP.isHost) {
-                 this._startAutoskipperTimer();
-             } else if (!window.MP || !window.MP.peer) {
-                 // Singleplayer autoskipper
-                 this._startAutoskipperTimer();
-             }
+             this._startAutoskipperTimer();
         }
     },
     
@@ -1182,11 +1172,14 @@ const App = {
             }
         });
         
-        if (votes >= Math.ceil(total / 2)) {
-            // Majority reached!
+        if (votes >= total) {
+            // 100% agreement reached!
             window.MP.connections.forEach(p => p.skipVote = false);
             window.MP.broadcast('SKIP_SUCCESS', {});
             this._processSkipLocally();
+        } else {
+            window.MP.broadcast('SKIP_VOTE_COUNT', { votes, total });
+            this._updateSkipButtonText(votes, total);
         }
     },
 
