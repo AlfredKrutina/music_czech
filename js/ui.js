@@ -53,59 +53,67 @@ const UI = {
     // ─── Setup Screen ────────────────────────────────────────────────
 
     renderCuratedModes(onModeSelected) {
-        const container = document.getElementById('curated-modes-container');
-        if (!container) return;
+        const renderInto = (containerId) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
 
-        container.innerHTML = '';
-        let playlists = CONFIG.PREDEFINED_PLAYLISTS;
-        if (!playlists && CONFIG.CURATED_MODES) {
-            playlists = { "Curated": CONFIG.CURATED_MODES };
-        }
-        if (!playlists) return;
+            container.innerHTML = '';
+            let playlists = CONFIG.PREDEFINED_PLAYLISTS;
+            if (!playlists && CONFIG.CURATED_MODES) {
+                playlists = { "Curated": CONFIG.CURATED_MODES };
+            }
+            if (!playlists) return;
 
-        const select = document.createElement('select');
-        select.className = 'select-input';
-        select.style.width = '100%';
-        
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = '--- Select a curated vibe ---';
-        defaultOption.disabled = true;
-        defaultOption.selected = true;
-        select.appendChild(defaultOption);
+            const select = document.createElement('select');
+            select.className = 'select-input';
+            select.style.width = '100%';
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = '--- Select a curated vibe ---';
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            select.appendChild(defaultOption);
 
-        for (const [categoryName, items] of Object.entries(playlists)) {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = categoryName;
+            for (const [categoryName, items] of Object.entries(playlists)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = categoryName;
 
-            items.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.url || item.name;
-                option.textContent = item.name;
-                optgroup.appendChild(option);
-            });
+                items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.url || item.name;
+                    option.textContent = item.name;
+                    optgroup.appendChild(option);
+                });
 
-            select.appendChild(optgroup);
-        }
+                select.appendChild(optgroup);
+            }
 
-        if (onModeSelected) {
-            select.addEventListener('change', (e) => {
-                const val = e.target.value;
-                if (val) {
-                    if (val.startsWith('http')) {
-                        onModeSelected(val);
-                    } else {
-                        // If it's just a name, search it!
-                        const searchInput = document.getElementById('infinite-search-input');
-                        if (searchInput) searchInput.value = val;
-                        document.getElementById('infinite-search-btn')?.click();
+            if (onModeSelected) {
+                select.addEventListener('change', (e) => {
+                    const val = e.target.value;
+                    if (val) {
+                        if (val.startsWith('http')) {
+                            onModeSelected(val);
+                        } else {
+                            const searchInput = document.getElementById('infinite-search-input');
+                            if (searchInput) searchInput.value = val;
+                            if (containerId !== 'mp-curated-modes-container') {
+                                document.getElementById('infinite-search-btn')?.click();
+                            } else {
+                                onModeSelected(val);
+                            }
+                        }
                     }
                     select.value = ''; // reset after selection
-                }
-            });
-        }
-        
-        container.appendChild(select);
+                });
+            }
+
+            container.appendChild(select);
+        };
+
+        renderInto('curated-modes-container');
+        renderInto('mp-curated-modes-container');
     },
 
     getPlaylistUrl() {

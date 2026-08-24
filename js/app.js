@@ -120,7 +120,6 @@ const App = {
         this._on('playlist-url-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._loadPlaylist();
         });
-        this._on('load-playlist-btn', 'click', () => this._loadPlaylist());
         this._on('infinite-search-btn', 'click', () => this._searchAndLoad());
         this._on('infinite-search-input', 'keydown', (e) => {
             if (e.key === 'Enter') this._searchAndLoad();
@@ -147,6 +146,14 @@ const App = {
         this._on('mp-create-btn', 'click', () => this._mpCreateRoom());
         this._on('mp-join-btn', 'click', () => this._mpJoinRoom());
         this._on('mp-leave-btn', 'click', () => this._mpLeaveRoom());
+        this._on('mp-load-playlist-btn', 'click', () => {
+            const input = document.getElementById('mp-playlist-url-input');
+            if (input && input.value) {
+                this._loadPlaylist(input.value.trim());
+            } else {
+                UI.showToast('Please enter a custom playlist URL', 'error');
+            }
+        });
         this._on('mp-copy-link-btn', 'click', () => {
             if (window.MP && window.MP.roomId) {
                 const url = new URL(window.location.href);
