@@ -361,10 +361,19 @@ const UI = {
     setBlurredBackground(videoId) {
         const bgLayer = document.getElementById('bg-layer');
         if (bgLayer) {
+            // Disable transition temporarily to prevent the new image from being revealed unblurred
+            bgLayer.style.transition = 'none';
+            
             const imgUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
             bgLayer.style.backgroundImage = `url('${imgUrl}')`;
             bgLayer.style.filter = 'blur(60px) brightness(0.6)';
             bgLayer.style.opacity = '1';
+            
+            // Force browser reflow to apply styles instantly
+            void bgLayer.offsetWidth;
+            
+            // Restore default transition
+            bgLayer.style.transition = '';
         }
     },
 
