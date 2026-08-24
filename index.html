@@ -162,7 +162,12 @@
 
                     <div id="mp-lobby-section" style="display: none;">
                         <h4 style="margin-bottom: 0.5rem; color: #4ade80;">Connected!</h4>
-                        <p style="margin-bottom: 1rem;">Room Code: <strong id="mp-lobby-code" style="font-size: 1.5rem; color: #fbbf24; letter-spacing: 2px;"></strong></p>
+                        <p style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            Room Code: <strong id="mp-lobby-code" style="font-size: 1.5rem; color: #fbbf24; letter-spacing: 2px;"></strong>
+                            <button id="mp-copy-link-btn" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                                <i data-lucide="copy"></i> Copy Invite Link
+                            </button>
+                        </p>
                         
                         <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
                             <h5 style="margin-bottom: 0.5rem; color: #9ca3af;">Players (<span id="mp-player-count">1</span>)</h5>

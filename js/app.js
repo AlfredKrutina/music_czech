@@ -61,7 +61,17 @@ const App = {
         Math.setSeed(seedParam);
         this._currentSeed = seedParam; // Store for sharing
 
-        if (playlistParam) {
+        const roomParam = urlParams.get('room');
+
+        if (roomParam) {
+            UI.showScreen('screen-setup');
+            setTimeout(() => {
+                const btn = document.getElementById('tab-multiplayer');
+                if (btn) btn.click();
+                const roomInput = document.getElementById('mp-room-input');
+                if (roomInput) roomInput.value = roomParam.toUpperCase();
+            }, 100);
+        } else if (playlistParam) {
             // Apply game option params if present
             if (hardcoreParam === '1') {
                 const hcCheckbox = document.getElementById('hardcore-mode-checkbox');
@@ -137,6 +147,18 @@ const App = {
         this._on('mp-create-btn', 'click', () => this._mpCreateRoom());
         this._on('mp-join-btn', 'click', () => this._mpJoinRoom());
         this._on('mp-leave-btn', 'click', () => this._mpLeaveRoom());
+        this._on('mp-copy-link-btn', 'click', () => {
+            if (window.MP && window.MP.roomId) {
+                const url = new URL(window.location.href);
+                url.search = '';
+                url.searchParams.set('room', window.MP.roomId);
+                navigator.clipboard.writeText(url.toString()).then(() => {
+                    UI.showToast('Invite link copied to clipboard!', 'success');
+                }).catch(() => {
+                    UI.showToast('Failed to copy link', 'error');
+                });
+            }
+        });
 
         // --- Game screen ---
         this._on('quit-game-btn', 'click', () => this._quitGame());
