@@ -360,7 +360,14 @@ const UI = {
 
     setBlurredBackground(videoId) {
         const bgLayer = document.getElementById('bg-layer');
+        const showBg = document.getElementById('bg-image-checkbox')?.checked ?? true;
+        
         if (bgLayer) {
+            if (!showBg) {
+                bgLayer.style.opacity = '0';
+                return;
+            }
+            
             // Disable transition temporarily to prevent the new image from being revealed unblurred
             bgLayer.style.transition = 'none';
             
@@ -400,7 +407,8 @@ const UI = {
             if (resultImage) resultImage.src = imgUrl;
             
             // Blur Reveal!
-            if (bgLayer) {
+            const showBg = document.getElementById('bg-image-checkbox')?.checked ?? true;
+            if (bgLayer && showBg) {
                 bgLayer.style.backgroundImage = `url('${imgUrl}')`;
                 bgLayer.style.filter = 'blur(0px) brightness(1)';
                 bgLayer.style.opacity = '1';
@@ -408,7 +416,7 @@ const UI = {
         } else {
             if (resultImage) resultImage.src = '';
             if (bgLayer) {
-                bgLayer.style.backgroundImage = 'none';
+                bgLayer.style.backgroundImage = '';
                 bgLayer.style.opacity = '0';
             }
         }
