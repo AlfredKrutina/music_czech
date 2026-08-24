@@ -144,6 +144,25 @@ class Game {
         return this._handleWrongGuess();
     }
 
+    /**
+     * Check if a guess is correct without modifying the game state.
+     */
+    checkGuessOnly(selectedTrack, guessText) {
+        const track = this.getCurrentTrack();
+        if (!track) return false;
+
+        if (selectedTrack) {
+            return (
+                (track.id && selectedTrack.id && track.id === selectedTrack.id) ||
+                (FuzzySearch.normalize(track.name) === FuzzySearch.normalize(selectedTrack.name) &&
+                 FuzzySearch.normalize(track.artist) === FuzzySearch.normalize(selectedTrack.artist))
+            );
+        } else if (guessText) {
+            return FuzzySearch.isMatch(guessText, track);
+        }
+        return false;
+    }
+
     /** @private */
     _handleWrongGuess() {
         if (this.canSkip()) {

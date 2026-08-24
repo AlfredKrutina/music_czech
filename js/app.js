@@ -116,30 +116,27 @@ const App = {
             if (e.key === 'Enter') this._searchAndLoad();
         });
         // --- Setup screen tabs ---
-        this._on('tab-play', 'click', () => {
-            const cp = document.getElementById('setup-content-play');
-            const cl = document.getElementById('setup-content-leaderboards');
-            const tp = document.getElementById('tab-play');
-            const tl = document.getElementById('tab-leaderboards');
-            if(cp) cp.style.display = 'block';
-            if(cl) cl.style.display = 'none';
-            if(tp) { tp.className = 'btn btn-primary'; tp.style.flex = '1'; }
-            if(tl) { tl.className = 'btn btn-secondary'; tl.style.flex = '1'; }
-        });
-        
-        this._on('tab-leaderboards', 'click', () => {
-            const cp = document.getElementById('setup-content-play');
-            const cl = document.getElementById('setup-content-leaderboards');
-            const tp = document.getElementById('tab-play');
-            const tl = document.getElementById('tab-leaderboards');
-            if(cp) cp.style.display = 'none';
-            if(cl) cl.style.display = 'block';
-            if(tp) { tp.className = 'btn btn-secondary'; tp.style.flex = '1'; }
-            if(tl) { tl.className = 'btn btn-primary'; tl.style.flex = '1'; }
-            this._loadHomeLeaderboards();
-        });
+        const switchTab = (tabId) => {
+            const tabs = ['play', 'multiplayer', 'leaderboards'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`setup-content-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (content) content.style.display = (t === tabId) ? 'block' : 'none';
+                if (btn) btn.className = (t === tabId) ? 'btn btn-primary' : 'btn btn-secondary';
+            });
+            if (tabId === 'leaderboards') this._loadHomeLeaderboards();
+        };
+
+        this._on('tab-play', 'click', () => switchTab('play'));
+        this._on('tab-multiplayer', 'click', () => switchTab('multiplayer'));
+        this._on('tab-leaderboards', 'click', () => switchTab('leaderboards'));
         
         this._on('leaderboard-select', 'change', () => this._fetchSelectedLeaderboard());
+
+        // --- Multiplayer ---
+        this._on('mp-create-btn', 'click', () => this._mpCreateRoom());
+        this._on('mp-join-btn', 'click', () => this._mpJoinRoom());
+        this._on('mp-leave-btn', 'click', () => this._mpLeaveRoom());
 
         // --- Game screen ---
         this._on('quit-game-btn', 'click', () => this._quitGame());
@@ -182,6 +179,249 @@ const App = {
     _on(id, event, handler) {
         const el = document.getElementById(id);
         if (el) el.addEventListener(event, handler);
+    },
+
+    // ─── Multiplayer Lobby Logic ─────────────────────────────────────
+
+    async _mpCreateRoom() {
+        const nameInput = document.getElementById('mp-name-input');
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) return UI.showToast('Please enter your nickname', 'error');
+
+        const btn = document.getElementById('mp-create-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        try {
+            const roomId = await window.MP.createRoom(name);
+            this._mpShowLobby(roomId, true);
+            this._mpSetupListeners();
+        } catch (e) {
+            UI.showToast('Failed to create room: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Create Room (Host)';
+        }
+    },
+
+    async _mpJoinRoom() {
+        const nameInput = document.getElementById('mp-name-input');
+        const roomInput = document.getElementById('mp-room-input');
+        const name = nameInput ? nameInput.value.trim() : '';
+        const roomId = roomInput ? roomInput.value.trim() : '';
+        
+        if (!name) return UI.showToast('Please enter your nickname', 'error');
+        if (!roomId) return UI.showToast('Please enter a room code', 'error');
+
+        const btn = document.getElementById('mp-join-btn');
+        btn.disabled = true;
+        btn.textContent = 'Joining...';
+
+        try {
+            await window.MP.joinRoom(roomId, name);
+            this._mpShowLobby(roomId, false);
+            this._mpSetupListeners();
+        } catch (e) {
+            UI.showToast('Failed to join room: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Join';
+        }
+    },
+    
+    _mpLeaveRoom() {
+        if (window.MP && window.MP.peer) {
+            window.MP.peer.destroy();
+        }
+        window.MP = new MultiplayerNetwork(); // Reset
+        
+        document.getElementById('mp-join-section').style.display = 'block';
+        document.getElementById('mp-lobby-section').style.display = 'none';
+        UI.showToast('Left the room');
+    },
+
+    _mpShowLobby(roomId, isHost) {
+        document.getElementById('mp-join-section').style.display = 'none';
+        document.getElementById('mp-lobby-section').style.display = 'block';
+        document.getElementById('mp-lobby-code').textContent = roomId;
+        document.getElementById('mp-host-instruction').style.display = isHost ? 'block' : 'none';
+        document.getElementById('mp-guest-instruction').style.display = isHost ? 'none' : 'block';
+    },
+
+    _mpSetupListeners() {
+        window.MP.on('UPDATE_PLAYERS', (data) => {
+            const list = document.getElementById('mp-player-list');
+            const count = document.getElementById('mp-player-count');
+            if (list && count) {
+                count.textContent = data.players.length;
+                list.innerHTML = '';
+                data.players.forEach(p => {
+                    const div = document.createElement('div');
+                    div.style.padding = '0.5rem';
+                    div.style.background = 'rgba(255,255,255,0.05)';
+                    div.style.borderRadius = '0.25rem';
+                    div.style.display = 'flex';
+                    div.style.justifyContent = 'space-between';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = p.name + (p.id === window.MP.myId ? ' (You)' : '');
+                    
+                    const scoreSpan = document.createElement('span');
+                    scoreSpan.textContent = `${p.score} pts`;
+                    scoreSpan.style.color = '#4ade80';
+                    
+                    div.appendChild(nameSpan);
+                    div.appendChild(scoreSpan);
+                    list.appendChild(div);
+                });
+            }
+        });
+        
+        window.MP.on('disconnected', () => {
+            UI.showToast('Disconnected from host', 'error');
+            this._mpLeaveRoom();
+        });
+        
+        window.MP.on('message', (msg) => {
+            this._handleMultiplayerMessage(msg);
+        });
+    },
+
+    _handleMultiplayerMessage(msg) {
+        if (!msg) return;
+        const payload = msg.payload || {};
+        
+        switch (msg.type) {
+            case 'START_GAME':
+                this.game = new Game(payload.tracks, payload.totalRounds);
+                UI.showScreen('screen-game');
+                break;
+                
+            case 'SYNC_ROUND':
+                this.game.currentRound = payload.roundNum - 1;
+                this._mcOptions = payload.options;
+                
+                UI.updateRoundInfo(this.game.getCurrentRoundNumber(), this.game.getTotalRounds());
+                UI.updateScore(this.game.getScore());
+                UI.updateDurationLabel(this.game.getCurrentDuration());
+                UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
+                UI.resetGuessInput();
+                
+                if (this._mcOptions) {
+                    UI.toggleMultipleChoiceMode(true);
+                    UI.renderMultipleChoice(this._mcOptions, (selectedTrack, btnElement) => {
+                        this._selectedTrack = selectedTrack;
+                        this._lastClickedMcBtn = btnElement;
+                        this._submitGuess();
+                    });
+                } else {
+                    UI.toggleMultipleChoiceMode(false);
+                }
+                
+                if (payload.videoId) {
+                    UI.setBlurredBackground(payload.videoId);
+                    if (!this.player.isReady()) {
+                        this.player.init().then(() => this.player.loadVideo(payload.videoId));
+                    } else {
+                        this.player.loadVideo(payload.videoId);
+                    }
+                }
+                
+                UI.setPlayButtonState('ready');
+                document.getElementById('play-btn').disabled = true;
+                break;
+                
+            case 'PLAY_CLIP':
+                this._mpOverrideDuration = payload.durationMs;
+                this._isFromHost = true;
+                this._playClip();
+                this._isFromHost = false;
+                break;
+                
+            case 'GUESS':
+                if (window.MP && window.MP.isHost) {
+                    const { track, text } = payload;
+                    const peerId = msg.from;
+                    const peer = window.MP.connections.get(peerId);
+                    const name = peer ? peer.name : 'Unknown';
+
+                    const isCorrect = this.game.checkGuessOnly(track, text);
+                    
+                    if (isCorrect) {
+                        // The player guessed correctly! They win the round!
+                        const points = CONFIG.POINTS[this.game.getAttemptNumber()] || 1;
+                        
+                        // Notify everyone that someone won!
+                        window.MP.broadcast('ROUND_RESULT', {
+                            winnerId: peerId,
+                            winnerName: name || peerId,
+                            points: points,
+                            track: this.game.getCurrentTrack()
+                        });
+                        
+                        // Add points to the winner in the multiplayer scoreboard
+                        window.MP.addScore(peerId, points);
+
+                        // Also process it locally as the host to advance the game!
+                        this._processGuessLocally(track, text, peerId);
+                    } else {
+                        // Send failure message back to just that peer? Or broadcast a miss?
+                        // Simple approach: broadcast they missed, or just do nothing (peer will have no response).
+                        // Better: peer handles wrong guesses locally by evaluating before sending? No, because Host is source of truth.
+                        // Let's send them a WRONG_GUESS message
+                        window.MP.sendToPeer(peerId, 'WRONG_GUESS', {});
+                    }
+                }
+                break;
+                
+            case 'WRONG_GUESS':
+                SFX.playWrong();
+                UI.showWrongGuess();
+                UI.showToast('Wrong answer!', 'error');
+                const input = document.getElementById('guess-input');
+                if (input) input.value = '';
+                
+                if (this._lastClickedMcBtn) {
+                    this._lastClickedMcBtn.classList.add('wrong');
+                    this._lastClickedMcBtn = null;
+                }
+                break;
+
+            case 'ROUND_RESULT':
+                // Someone won the round!
+                if (!window.MP.isHost) {
+                    // Update the guest's local game state to match
+                    this.game.score += payload.points; // Add points to the winner? Wait, the scoreboard is managed by Host!
+                    
+                    SFX.playCorrect();
+                    const videoId = this._searchedVideos.get(this.game.currentRound);
+                    
+                    // Show a special toast if YOU won or someone else won
+                    if (payload.winnerId === window.MP.myId) {
+                        UI.showToast(`You guessed it first! +${payload.points} pts`, 'success');
+                        UI.showRoundResult(true, payload.track, videoId, payload.points);
+                    } else {
+                        UI.showToast(`${payload.winnerName} guessed it first!`, 'info');
+                        UI.showRoundResult(false, payload.track, videoId, 0); // show as failed for local player
+                    }
+                    
+                }
+                break;
+                
+            case 'SKIP_VOTE':
+                if (window.MP && window.MP.isHost) {
+                    const peer = window.MP.connections.get(msg.from);
+                    if (peer) peer.skipVote = true;
+                    this._checkSkipVotes();
+                }
+                break;
+                
+            case 'SKIP_SUCCESS':
+                if (!window.MP.isHost) {
+                    this._processSkipLocally();
+                }
+                break;
+        }
     },
 
     // ─── Setup Screen Actions ────────────────────────────────────────
@@ -366,6 +606,14 @@ const App = {
 
             // Step 4: Start the first round
             this._gameStartTime = performance.now();
+            
+            if (window.MP && window.MP.isHost) {
+                window.MP.broadcast('START_GAME', {
+                    tracks: gameTracks,
+                    totalRounds: numRounds
+                });
+            }
+
             await this._startRound();
 
         } catch (e) {
@@ -412,6 +660,13 @@ const App = {
         UI.updateDurationLabel(this.game.getCurrentDuration());
         UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
         UI.resetGuessInput();
+        
+        if (window.MP && window.MP.peer && !window.MP.isHost) {
+            UI.setPlayButtonState('loading');
+            UI.setSkipButtonLabel('Waiting for Host...');
+            document.getElementById('play-btn').disabled = true;
+            return; // Guests wait for SYNC_ROUND
+        }
         
         // Setup Multiple Choice Mode
         const mcCheckbox = document.getElementById('multiple-choice-checkbox');
@@ -533,6 +788,15 @@ const App = {
             }
             return;
         }
+        
+        if (window.MP && window.MP.isHost) {
+            window.MP.broadcast('SYNC_ROUND', {
+                roundNum: this.game.getCurrentRoundNumber(),
+                track: track,
+                options: this._mcOptions,
+                videoId: videoId
+            });
+        }
 
         try {
             // Ensure YouTube player is ready
@@ -559,15 +823,29 @@ const App = {
     },
 
     async _playClip() {
-        // Guard against double-click (button might have a render delay)
         if (this._clipPlaying) return;
-        const btn = document.getElementById('play-btn');
-        if (btn && btn.disabled) return;
+        
+        // If Guest, we can't click Play. This is triggered by MP broadcast.
+        if (window.MP && window.MP.peer && !window.MP.isHost && !this._isFromHost) {
+            return; // Ignore local clicks if guest
+        }
+        
+        if (window.MP && window.MP.isHost && !this._isFromHost) {
+            window.MP.broadcast('PLAY_CLIP', { durationMs: this.game.getCurrentDurationMs() });
+            // Let the local broadcast loopback handle it!
+            return; 
+        }
 
         this._clipPlaying = true;
         UI.setPlayButtonState('playing');
 
-        const durationMs = this.game.getCurrentDurationMs();
+        // MULTIPLAYER COUNTDOWN
+        if (window.MP && window.MP.peer) {
+             await UI.showCountdown(3);
+        }
+
+        const durationMs = this._mpOverrideDuration || this.game.getCurrentDurationMs();
+        this._mpOverrideDuration = null;
         
         const startPosSelect = document.getElementById('start-pos-select');
         const startMode = startPosSelect ? startPosSelect.value : 'beginning';
@@ -582,6 +860,33 @@ const App = {
         }
 
         UI.setPlayButtonState('ready');
+        
+        // AUTOSKIPPER LOGIC
+        const autoCheckbox = document.getElementById('autoskipper-checkbox');
+        if (autoCheckbox && autoCheckbox.checked) {
+             if (window.MP && window.MP.isHost) {
+                 this._startAutoskipperTimer();
+             } else if (!window.MP || !window.MP.peer) {
+                 // Singleplayer autoskipper
+                 this._startAutoskipperTimer();
+             }
+        }
+    },
+    
+    _startAutoskipperTimer() {
+        if (this._autoskipperTimer) {
+            clearTimeout(this._autoskipperTimer);
+        }
+        
+        // Skip automatically after 10 seconds if no guess
+        this._autoskipperTimer = setTimeout(() => {
+            // Check if we're still waiting for a guess on the active round
+            if (!document.getElementById('screen-result').classList.contains('active') && 
+                document.getElementById('screen-game').classList.contains('active')) {
+                UI.showToast('Autoskipper: Time is up!', 'info');
+                this._skip(); // Automatically skip to the next length
+            }
+        }, 10000);
     },
 
     // ─── Infinite Search ─────────────────────────────────────────────
@@ -727,11 +1032,30 @@ const App = {
         if (!guessText && !this._selectedTrack) return;
 
         UI.hideAutocomplete();
+
+        if (window.MP && window.MP.peer) {
+            window.MP.sendToHost('GUESS', {
+                track: this._selectedTrack,
+                text: guessText
+            });
+            this._selectedTrack = null;
+            return;
+        }
+
+        const t = this._selectedTrack;
+        this._selectedTrack = null;
+        this._processGuessLocally(t, guessText, null);
+    },
+
+    _processGuessLocally(selectedTrack, guessText, peerId) {
+        if (this._autoskipperTimer) {
+            clearTimeout(this._autoskipperTimer);
+        }
         this.player.stop();
 
         let result;
-        if (this._selectedTrack) {
-            result = this.game.submitTrackGuess(this._selectedTrack);
+        if (selectedTrack) {
+            result = this.game.submitTrackGuess(selectedTrack);
         } else {
             result = this.game.submitGuess(guessText);
         }
@@ -759,6 +1083,7 @@ const App = {
             UI.showToast('Wrong answer! Clip extended.', 'error');
             UI.updateDurationLabel(result.duration);
             UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
+            const input = document.getElementById('guess-input');
             if (input) input.value = '';
             const submitBtn = document.getElementById('submit-btn');
             if (submitBtn) submitBtn.disabled = true;
@@ -772,6 +1097,12 @@ const App = {
                     });
                 }
                 this._lastClickedMcBtn = null;
+            }
+            
+            // Restart autoskipper for the next duration!
+            const autoCheckbox = document.getElementById('autoskipper-checkbox');
+            if (autoCheckbox && autoCheckbox.checked) {
+                 this._startAutoskipperTimer();
             }
         } else {
             SFX.playWrong();
@@ -792,6 +1123,55 @@ const App = {
     },
 
     _skip() {
+        if (window.MP && window.MP.peer && !window.MP.isHost) {
+            window.MP.sendToHost('SKIP_VOTE', {});
+            const btn = document.getElementById('skip-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = "Voted!";
+            }
+            return;
+        }
+        
+        if (window.MP && window.MP.isHost) {
+            const peer = window.MP.connections.get(window.MP.myId);
+            if (peer) peer.skipVote = true;
+            const btn = document.getElementById('skip-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = "Voted!";
+            }
+            this._checkSkipVotes();
+            return;
+        }
+
+        this._processSkipLocally();
+    },
+    
+    _checkSkipVotes() {
+        if (!window.MP.isHost) return;
+        
+        let votes = 0;
+        let total = 0;
+        window.MP.connections.forEach(p => {
+            if (p.conn || p.name === window.MP.myName) { // count active or self
+                total++;
+                if (p.skipVote) votes++;
+            }
+        });
+        
+        if (votes >= Math.ceil(total / 2)) {
+            // Majority reached!
+            window.MP.connections.forEach(p => p.skipVote = false);
+            window.MP.broadcast('SKIP_SUCCESS', {});
+            this._processSkipLocally();
+        }
+    },
+
+    _processSkipLocally() {
+        if (this._autoskipperTimer) {
+            clearTimeout(this._autoskipperTimer);
+        }
         this.player.stop();
         const result = this.game.skip();
 
@@ -800,6 +1180,18 @@ const App = {
             UI.updateDurationLabel(result.duration);
             UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
             UI.showToast(`Clip extended to ${this._formatDuration(result.duration)}`, 'info');
+            
+            const btn = document.getElementById('skip-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Skip";
+            }
+            
+            // Restart autoskipper for the next duration!
+            const autoCheckbox = document.getElementById('autoskipper-checkbox');
+            if (autoCheckbox && autoCheckbox.checked) {
+                 this._startAutoskipperTimer();
+            }
         } else {
             SFX.playWrong();
             const lastResult = this.game.results[this.game.results.length - 1];

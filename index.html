@@ -39,7 +39,8 @@
             </header>
 
             <div class="setup-tabs" style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem;">
-                <button id="tab-play" class="btn btn-primary" style="flex: 1;">Play</button>
+                <button id="tab-play" class="btn btn-primary" style="flex: 1;">Singleplayer</button>
+                <button id="tab-multiplayer" class="btn btn-secondary" style="flex: 1;"><i data-lucide="users"></i> Multiplayer</button>
                 <button id="tab-leaderboards" class="btn btn-secondary" style="flex: 1;"><i data-lucide="trophy"></i> Leaderboards</button>
             </div>
 
@@ -127,7 +128,59 @@
                         <input type="checkbox" id="bg-image-checkbox" checked>
                         Show Blurred Background
                     </label>
+                <div class="options-row" style="margin-top: 0.5rem;">
+                    <label class="checkbox-label" title="Automatically play the next clip after 10 seconds of silence">
+                        <input type="checkbox" id="autoskipper-checkbox">
+                        Autoskipper Mode (10s delay)
+                    </label>
                 </div>
+            </div>
+
+            <div id="setup-content-multiplayer" style="display: none;">
+                <section class="card">
+                    <h3 class="card-title">
+                        <span class="card-icon"><i data-lucide="users"></i></span> Multiplayer
+                    </h3>
+                    <p class="card-desc">Play in real-time with your friends! (No backend required)</p>
+                    
+                    <div id="mp-join-section">
+                        <div class="input-group" style="margin-bottom: 1rem;">
+                            <input type="text" id="mp-name-input" placeholder="Your nickname" maxlength="15" autocomplete="off">
+                        </div>
+                        
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="mp-create-btn" class="btn btn-primary" style="flex: 1;">Create Room (Host)</button>
+                        </div>
+                        
+                        <hr style="margin: 1.5rem 0; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
+                        
+                        <div class="input-group">
+                            <input type="text" id="mp-room-input" placeholder="Room Code" maxlength="6" autocomplete="off" style="text-transform: uppercase;">
+                            <button id="mp-join-btn" class="btn btn-secondary">Join</button>
+                        </div>
+                    </div>
+
+                    <div id="mp-lobby-section" style="display: none;">
+                        <h4 style="margin-bottom: 0.5rem; color: #4ade80;">Connected!</h4>
+                        <p style="margin-bottom: 1rem;">Room Code: <strong id="mp-lobby-code" style="font-size: 1.5rem; color: #fbbf24; letter-spacing: 2px;"></strong></p>
+                        
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                            <h5 style="margin-bottom: 0.5rem; color: #9ca3af;">Players (<span id="mp-player-count">1</span>)</h5>
+                            <div id="mp-player-list" style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <div id="mp-host-instruction" style="display: none; color: #fbbf24; font-size: 0.9rem; margin-bottom: 1rem;">
+                            <i data-lucide="info"></i> As the Host, go to the <strong>Singleplayer</strong> tab to select a playlist and start the game!
+                        </div>
+                        <div id="mp-guest-instruction" style="display: none; color: #9ca3af; font-size: 0.9rem; margin-bottom: 1rem;">
+                            Waiting for host to start the game...
+                        </div>
+
+                        <button id="mp-leave-btn" class="btn btn-secondary" style="width: 100%;">Leave Room</button>
+                    </div>
+                </section>
             </div>
 
             <div id="setup-content-leaderboards" style="display: none;">
@@ -321,13 +374,20 @@
         <div id="yt-player"></div>
     </div>
 
+    <div id="countdown-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; flex-direction: column;">
+        <div id="countdown-text" style="font-size: 8rem; font-weight: 800; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.8);">3</div>
+        <div style="color: #fbbf24; font-size: 1.5rem; margin-top: 1rem; font-weight: 600;">Get Ready!</div>
+    </div>
+
     <!-- ═══════════════════════════════════════════════════════════════
          SCRIPTS (order matters — dependencies first)
          ═══════════════════════════════════════════════════════════════ -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="js/config.js?v=18"></script>
     <script src="js/fuzzy.js?v=18"></script>
     <script src="js/auth.js?v=18"></script>
+    <script src="js/multiplayer.js?v=1"></script>
     <script src="js/search.js?v=18"></script>
     <script src="js/player.js?v=18"></script>
     <script src="js/sfx.js?v=18"></script>

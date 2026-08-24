@@ -212,7 +212,29 @@ const UI = {
         if (window.lucide) lucide.createIcons();
     },
 
+    showCountdown(seconds) {
+        return new Promise(resolve => {
+            const overlay = document.getElementById('countdown-overlay');
+            const text = document.getElementById('countdown-text');
+            if (!overlay || !text) return resolve();
 
+            overlay.style.display = 'flex';
+            
+            let count = seconds;
+            text.textContent = count;
+            
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    text.textContent = count;
+                } else {
+                    clearInterval(interval);
+                    overlay.style.display = 'none';
+                    resolve();
+                }
+            }, 1000);
+        });
+    },
 
     resetGuessInput() {
         const input = document.getElementById('guess-input');
