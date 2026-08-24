@@ -259,8 +259,9 @@ const App = {
                     const yt = MusicFetcher.parseYouTubeId(url);
                     if (yt) cleanPlaylistId = yt;
                 } else if (platform === 'apple') {
-                const match = url.match(/pl\.[a-zA-Z0-9]+/);
-                if (match) cleanPlaylistId = match[0];
+                    const match = url.match(/pl\.[a-zA-Z0-9]+/);
+                    if (match) cleanPlaylistId = match[0];
+                }
             }
 
             // Step 3: Build composite boardId
