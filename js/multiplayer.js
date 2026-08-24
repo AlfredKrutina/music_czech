@@ -66,17 +66,27 @@ class MultiplayerNetwork {
             this.peer.on('open', (id) => {
                 this.myId = id;
                 const conn = this.peer.connect(this.hostId, {
-                    metadata: { name: playerName }
+                    metadata: { name: playerName },
+                    reliable: true
                 });
                 
+                const timeoutId = setTimeout(() => {
+                    reject(new Error("Connection timed out. The host may have left or the room code is invalid."));
+                    if (conn) conn.close();
+                }, 7000);
+
                 conn.on('open', () => {
+                    clearTimeout(timeoutId);
                     this.hostConnection = conn;
                     this._setupGuestConnection(conn);
                     this.emit('connected', { roomId: this.roomId, isHost: false });
                     resolve(this.roomId);
                 });
                 
-                conn.on('error', (err) => reject(err));
+                conn.on('error', (err) => {
+                    clearTimeout(timeoutId);
+                    reject(err);
+                });
             });
             
             this.peer.on('error', (err) => reject(err));

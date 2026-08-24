@@ -1336,6 +1336,15 @@ const App = {
         dailyOpt.textContent = `Daily Challenge (${dateStr})`;
         select.appendChild(dailyOpt);
 
+        // Add Last Played Game if it exists and isn't the daily challenge
+        if (this._currentBoardId && this._currentBoardId !== dailyBoardId) {
+            const lastOpt = document.createElement('option');
+            lastOpt.value = this._currentBoardId;
+            lastOpt.textContent = '🌟 Last Played Game';
+            select.appendChild(lastOpt);
+        }
+
+
         // Add Curated Modes (we'll just use a default configuration for them: 10 rounds, beginning, text)
         let playlists = CONFIG.PREDEFINED_PLAYLISTS;
         if (!playlists && CONFIG.CURATED_MODES) {
