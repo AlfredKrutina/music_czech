@@ -1621,75 +1621,108 @@ const App = {
         canvas.height = 1080;
         const ctx = canvas.getContext('2d');
 
-        // Background (Dark zinc)
-        ctx.fillStyle = '#09090b';
+        // Background
+        ctx.fillStyle = '#000000'; // Pure black for raw brutalism
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Accent Top Bar (Brutalist style)
-        ctx.fillStyle = '#1DB954';
-        ctx.fillRect(0, 0, canvas.width, 30);
-
-        // Outer Border
-        ctx.strokeStyle = '#27272a';
+        // Grid/Border layout
+        ctx.strokeStyle = '#3f3f46';
         ctx.lineWidth = 4;
-        ctx.strokeRect(20, 50, canvas.width - 40, canvas.height - 70);
-
-        // Text Styles
-        ctx.textAlign = 'center';
         
-        // Logo / Title
-        ctx.font = '900 80px "Outfit", "Space Grotesk", system-ui, sans-serif';
+        // Header block
+        ctx.strokeRect(40, 40, 1000, 200);
+        // Score block
+        ctx.strokeRect(40, 240, 660, 400);
+        // QR Code block
+        ctx.strokeRect(700, 240, 340, 340);
+        
+        // Progress / Timeline block
+        ctx.strokeRect(40, 640, 1000, 400);
+
+        // Text: Header
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#1DB954'; // Spotify/Brutalist Green
+        ctx.font = '900 100px "Space Grotesk", "Outfit", system-ui, sans-serif';
+        ctx.fillText('MUSIC GUESS', 80, 160);
+
+        // Text: Score
         ctx.fillStyle = '#ffffff';
-        ctx.fillText('MUSIC GUESS', canvas.width / 2, 170);
+        ctx.font = '700 50px "Space Grotesk", "Outfit", system-ui, sans-serif';
+        ctx.fillText('FINAL SCORE', 80, 330);
 
-        // Score Label
-        ctx.font = '600 40px "Outfit", "Space Grotesk", system-ui, sans-serif';
-        ctx.fillStyle = '#a1a1aa';
-        ctx.fillText('FINAL SCORE', canvas.width / 2, 280);
-
-        // Score Value
-        ctx.font = '900 160px "Outfit", "Space Grotesk", system-ui, sans-serif';
         ctx.fillStyle = '#1DB954';
-        ctx.fillText(`${score} / ${maxScore}`, canvas.width / 2, 420);
+        ctx.font = '900 220px "Space Grotesk", "Outfit", system-ui, sans-serif';
+        ctx.fillText(`${score}`, 80, 560);
         
-        // Emojis (Drawing text emojis on canvas works reasonably well)
-        ctx.font = '60px Arial';
-        const maxEmojisPerRow = 10;
-        const emojiArray = Array.from(emojiStr); 
-        const rowCount = Math.ceil(emojiArray.length / maxEmojisPerRow);
-        const startY = 530;
-        
-        for (let r = 0; r < rowCount; r++) {
-            const rowEmojis = emojiArray.slice(r * maxEmojisPerRow, (r + 1) * maxEmojisPerRow).join(' ');
-            ctx.fillText(rowEmojis, canvas.width / 2, startY + (r * 80));
-        }
+        ctx.fillStyle = '#52525b';
+        ctx.font = '900 100px "Space Grotesk", "Outfit", system-ui, sans-serif';
+        const scoreWidth = ctx.measureText(`${score}`).width;
+        ctx.fillText(`/${maxScore}`, 80 + scoreWidth + 10, 560);
 
-        // QR Code layout calculation
+        // Draw QR Code
         const qrSize = 280;
-        const qrY = 1080 - qrSize - 70;
-
-        // Subtitle text above QR
-        ctx.font = '700 40px "Outfit", "Space Grotesk", system-ui, sans-serif';
-        ctx.fillStyle = '#e4e4e7';
-        ctx.fillText('SCAN TO PLAY THIS SEED', canvas.width / 2, qrY - 40);
-
-        // Generate QR Code (White bg / Black fg for maximum camera readability)
         const qrCanvas = document.createElement('canvas');
+        
+        // Safer QR: White background box
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(720, 260, 300, 300);
         new QRious({
             element: qrCanvas,
             value: shareUrl,
             size: qrSize,
             background: '#ffffff',
             foreground: '#000000',
-            level: 'H'
+            level: 'L'
+        });
+        ctx.drawImage(qrCanvas, 730, 270);
+
+        // CTA under QR
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 25px "Space Grotesk", "Outfit", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('SCAN TO PLAY', 870, 615);
+
+        // Progress Grid (Replacing Emojis)
+        // Draw the blocks manually
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 40px "Space Grotesk", "Outfit", system-ui, sans-serif';
+        ctx.fillText('MATCH HISTORY', 80, 720);
+
+        // Draw squares
+        const maxCols = 10;
+        const blockW = 80;
+        const blockH = 80;
+        const gap = 15;
+        const startX = 80;
+        const startY = 760;
+
+        results.forEach((r, i) => {
+            const row = Math.floor(i / maxCols);
+            const col = i % maxCols;
+            const x = startX + (col * (blockW + gap));
+            const y = startY + (row * (blockH + gap));
+
+            if (r.correct) {
+                // Correct: Solid Green
+                ctx.fillStyle = '#1DB954';
+                ctx.fillRect(x, y, blockW, blockH);
+            } else {
+                // Wrong: Hollow or Red outline
+                ctx.strokeStyle = '#ef4444'; // Red
+                ctx.lineWidth = 6;
+                ctx.strokeRect(x + 3, y + 3, blockW - 6, blockH - 6);
+                
+                // Draw a cross inside
+                ctx.beginPath();
+                ctx.moveTo(x + 20, y + 20);
+                ctx.lineTo(x + blockW - 20, y + blockH - 20);
+                ctx.moveTo(x + blockW - 20, y + 20);
+                ctx.lineTo(x + 20, y + blockH - 20);
+                ctx.stroke();
+            }
         });
 
-        // Brutalist white box framing the QR
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect((canvas.width / 2) - (qrSize / 2) - 20, qrY - 20, qrSize + 40, qrSize + 40);
-        
-        // Draw QR Code onto main canvas
-        ctx.drawImage(qrCanvas, (canvas.width / 2) - (qrSize / 2), qrY);
 
         // Share or download logic
         try {
