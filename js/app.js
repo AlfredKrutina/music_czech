@@ -1764,7 +1764,7 @@ const App = {
                 if (window.lucide) lucide.createIcons();
             }, 3000);
         }
-    }
+    },
 
     // ─── Helpers ─────────────────────────────────────────────────────
 
