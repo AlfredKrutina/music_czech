@@ -1621,61 +1621,75 @@ const App = {
         canvas.height = 1080;
         const ctx = canvas.getContext('2d');
 
-        // Draw Background
-        ctx.fillStyle = '#000000';
+        // Background (Dark zinc)
+        ctx.fillStyle = '#09090b';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Brutalist Border
-        ctx.strokeStyle = '#1DB954';
-        ctx.lineWidth = 16;
-        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+        // Accent Top Bar (Brutalist style)
+        ctx.fillStyle = '#1DB954';
+        ctx.fillRect(0, 0, canvas.width, 30);
 
-        // Add Text Styles
-        ctx.fillStyle = '#FFFFFF';
+        // Outer Border
+        ctx.strokeStyle = '#27272a';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(20, 50, canvas.width - 40, canvas.height - 70);
+
+        // Text Styles
         ctx.textAlign = 'center';
         
-        // Logo
-        ctx.font = 'bold 90px "Outfit", "Space Grotesk", sans-serif';
-        ctx.fillText('Music Guess', canvas.width / 2, 200);
+        // Logo / Title
+        ctx.font = '900 80px "Outfit", "Space Grotesk", system-ui, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('MUSIC GUESS', canvas.width / 2, 170);
 
-        // Score
-        ctx.font = 'bold 130px "Outfit", "Space Grotesk", sans-serif';
+        // Score Label
+        ctx.font = '600 40px "Outfit", "Space Grotesk", system-ui, sans-serif';
+        ctx.fillStyle = '#a1a1aa';
+        ctx.fillText('FINAL SCORE', canvas.width / 2, 280);
+
+        // Score Value
+        ctx.font = '900 160px "Outfit", "Space Grotesk", system-ui, sans-serif';
         ctx.fillStyle = '#1DB954';
-        ctx.fillText(`${score} / ${maxScore}`, canvas.width / 2, 380);
+        ctx.fillText(`${score} / ${maxScore}`, canvas.width / 2, 420);
         
-        // Emojis (Drawing text emojis on canvas works reasonably well in most modern browsers)
-        ctx.font = '70px Arial';
-        
-        // Break emojis into rows if too many (e.g. 10 per row max)
+        // Emojis (Drawing text emojis on canvas works reasonably well)
+        ctx.font = '60px Arial';
         const maxEmojisPerRow = 10;
-        // Match actual surrogate pairs to safely split emojis (🟩, 🟨, 🟥)
         const emojiArray = Array.from(emojiStr); 
         const rowCount = Math.ceil(emojiArray.length / maxEmojisPerRow);
-        const startY = 520;
+        const startY = 530;
         
         for (let r = 0; r < rowCount; r++) {
-            const rowEmojis = emojiArray.slice(r * maxEmojisPerRow, (r + 1) * maxEmojisPerRow).join('');
-            ctx.fillText(rowEmojis, canvas.width / 2, startY + (r * 90));
+            const rowEmojis = emojiArray.slice(r * maxEmojisPerRow, (r + 1) * maxEmojisPerRow).join(' ');
+            ctx.fillText(rowEmojis, canvas.width / 2, startY + (r * 80));
         }
 
-        // Subtitle text
-        ctx.font = 'bold 40px "Outfit", "Space Grotesk", sans-serif';
-        ctx.fillStyle = '#e4e4e7';
-        ctx.fillText('Can you beat me? Scan to play!', canvas.width / 2, startY + (rowCount * 90) + 40);
+        // QR Code layout calculation
+        const qrSize = 280;
+        const qrY = 1080 - qrSize - 70;
 
-        // Generate QR Code
+        // Subtitle text above QR
+        ctx.font = '700 40px "Outfit", "Space Grotesk", system-ui, sans-serif';
+        ctx.fillStyle = '#e4e4e7';
+        ctx.fillText('SCAN TO PLAY THIS SEED', canvas.width / 2, qrY - 40);
+
+        // Generate QR Code (White bg / Black fg for maximum camera readability)
         const qrCanvas = document.createElement('canvas');
         new QRious({
             element: qrCanvas,
             value: shareUrl,
-            size: 260,
-            background: '#000000',
-            foreground: '#1DB954',
+            size: qrSize,
+            background: '#ffffff',
+            foreground: '#000000',
             level: 'H'
         });
 
+        // Brutalist white box framing the QR
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect((canvas.width / 2) - (qrSize / 2) - 20, qrY - 20, qrSize + 40, qrSize + 40);
+        
         // Draw QR Code onto main canvas
-        ctx.drawImage(qrCanvas, (canvas.width / 2) - 130, startY + (rowCount * 90) + 100);
+        ctx.drawImage(qrCanvas, (canvas.width / 2) - (qrSize / 2), qrY);
 
         // Share or download logic
         try {
