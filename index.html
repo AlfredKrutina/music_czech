@@ -72,9 +72,12 @@
                 </div>
                 
                 <!-- Quick suggestions -->
-                <div style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 0.5rem;">Or pick a classic vibe:</div>
+                <div style="font-size: 0.85rem; color: #e4e4e7; margin-bottom: 0.5rem;">Or pick a classic vibe:</div>
                 <div id="curated-modes-container" class="curated-modes-container">
-                    <!-- Populated by JS -->
+                    <button class="mode-chip" data-search="00s Pop" onclick="document.getElementById('infinite-search-input').value = '00s Pop'; document.getElementById('infinite-search-btn').click();">2000s Pop</button>
+                    <button class="mode-chip" data-search="Rock Classics" onclick="document.getElementById('infinite-search-input').value = 'Rock Classics'; document.getElementById('infinite-search-btn').click();">Rock Classics</button>
+                    <button class="mode-chip" data-search="Hans Zimmer" onclick="document.getElementById('infinite-search-input').value = 'Hans Zimmer'; document.getElementById('infinite-search-btn').click();">Hans Zimmer</button>
+                    <!-- Populated dynamically by JS if more are needed -->
                 </div>
             </section>
 
@@ -226,7 +229,7 @@
                     </div>
                     
                     <div id="home-leaderboard-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
-                        <div style="text-align: center; color: #9ca3af; padding: 1rem;">Select a leaderboard...</div>
+                        <div style="text-align: center; color: #e4e4e7; padding: 1rem;">Select a leaderboard...</div>
                     </div>
                     </div>
                 </section>
@@ -235,6 +238,9 @@
 
             <footer class="setup-footer">
                 <p>Built with <i data-lucide="heart" class="footer-heart"></i> — No backend required</p>
+                <p style="margin-top: 0.5rem;">
+                    <a href="mailto:feedback@musicguess.com" style="color: #1DB954; font-weight: bold; text-decoration: none;">Got feedback or found a bug? Let us know!</a>
+                </p>
             </footer>
         </div>
     </div>

@@ -733,8 +733,29 @@ const App = {
             if (this._loadingCancelled) return; // Silently ignore if user cancelled
             console.error('Playlist load error:', e);
             UI.setCancelButton(false);
-            UI.showToast(e.message || 'Failed to load playlist', 'error');
+            
+            // Systems thinking: Don't just show an error, provide a path forward
+            const isFuzzySearch = isCustomTracks;
+            const errorMsg = e.message || 'Failed to load playlist';
+            
+            if (isFuzzySearch) {
+                UI.showToast('No tracks found for that search. Try a broader term!', 'error');
+            } else {
+                UI.showToast(`Error: ${errorMsg}`, 'error');
+            }
+            
             UI.showScreen('screen-setup');
+            
+            // Suggest an alternative after a short delay so the user isn't stuck
+            setTimeout(() => {
+                UI.showToast('Not sure what to play? Try the Daily Challenge!', 'info');
+                // Highlight the daily challenge button briefly
+                const btn = document.getElementById('daily-challenge-btn');
+                if (btn) {
+                    btn.style.boxShadow = '0 0 0 4px rgba(29, 185, 84, 0.5)';
+                    setTimeout(() => btn.style.boxShadow = '', 2000);
+                }
+            }, 1500);
         }
     },
 
