@@ -1073,6 +1073,16 @@ const App = {
         } catch (e) {
             console.error('Search error:', e);
             UI.showToast(e.message || `Could not find enough tracks for "${query}"`, 'error');
+            
+            // Systems thinking fallback
+            setTimeout(() => {
+                UI.showToast('Try searching a broader genre, or play the Daily Challenge!', 'info');
+                const btn = document.getElementById('daily-challenge-btn');
+                if (btn) {
+                    btn.style.boxShadow = '0 0 0 4px rgba(29, 185, 84, 0.5)';
+                    setTimeout(() => btn.style.boxShadow = '', 2000);
+                }
+            }, 1500);
         } finally {
             document.getElementById('infinite-search-btn').innerHTML = originalBtnText;
             document.getElementById('infinite-search-btn').disabled = false;
