@@ -1209,7 +1209,7 @@ const App = {
             const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(true, lastResult.track, videoId, result.points);
             
-            this.player.playClip(15000).catch(() => {});
+            this.player.playClip(3600000).catch(() => {}); // Play indefinitely
         } else if (result.canContinue) {
             SFX.playWrong();
             UI.showWrongGuess();
@@ -1325,7 +1325,7 @@ const App = {
             const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             
-            this.player.playClip(15000).catch(() => {});
+            this.player.playClip(3600000).catch(() => {}); // Play indefinitely
         }
     },
 
@@ -1587,7 +1587,7 @@ const App = {
         UI.showScreen('screen-setup');
     },
 
-    _shareResult() {
+    async _shareResult() {
         const score = this.game.getScore();
         const maxScore = this.game.getMaxScore();
         const results = this.game.getResults();
@@ -1613,25 +1613,111 @@ const App = {
         const mcCheckbox = document.getElementById('multiple-choice-checkbox');
         if (mcCheckbox && mcCheckbox.checked) currentUrl.searchParams.set('mc', '1');
 
-        const textToShare = `🎵 Music Guess\nScore: ${score}/${maxScore}\n${emojiStr}\n\nCan you beat me? Play same tracks:\n${currentUrl.toString()}`;
+        const shareUrl = currentUrl.toString();
         
-        navigator.clipboard.writeText(textToShare).then(() => {
-            UI.showToast('Result copied to clipboard!', 'success');
-            const btn = document.getElementById('share-btn');
-            if (btn) {
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="check"></i> Copied!';
-                if (window.lucide) lucide.createIcons();
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    if (window.lucide) lucide.createIcons();
-                }, 2000);
-            }
-        }).catch(err => {
-            console.error('Clipboard error', err);
-            UI.showToast('Failed to copy to clipboard', 'error');
+        // Generate Strava-like Image using Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+
+        // Draw Background
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Brutalist Border
+        ctx.strokeStyle = '#1DB954';
+        ctx.lineWidth = 16;
+        ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+
+        // Add Text Styles
+        ctx.fillStyle = '#FFFFFF';
+        ctx.textAlign = 'center';
+        
+        // Logo
+        ctx.font = 'bold 90px "Outfit", "Space Grotesk", sans-serif';
+        ctx.fillText('Music Guess', canvas.width / 2, 200);
+
+        // Score
+        ctx.font = 'bold 130px "Outfit", "Space Grotesk", sans-serif';
+        ctx.fillStyle = '#1DB954';
+        ctx.fillText(`${score} / ${maxScore}`, canvas.width / 2, 380);
+        
+        // Emojis (Drawing text emojis on canvas works reasonably well in most modern browsers)
+        ctx.font = '70px Arial';
+        
+        // Break emojis into rows if too many (e.g. 10 per row max)
+        const maxEmojisPerRow = 10;
+        // Match actual surrogate pairs to safely split emojis (🟩, 🟨, 🟥)
+        const emojiArray = Array.from(emojiStr); 
+        const rowCount = Math.ceil(emojiArray.length / maxEmojisPerRow);
+        const startY = 520;
+        
+        for (let r = 0; r < rowCount; r++) {
+            const rowEmojis = emojiArray.slice(r * maxEmojisPerRow, (r + 1) * maxEmojisPerRow).join('');
+            ctx.fillText(rowEmojis, canvas.width / 2, startY + (r * 90));
+        }
+
+        // Subtitle text
+        ctx.font = 'bold 40px "Outfit", "Space Grotesk", sans-serif';
+        ctx.fillStyle = '#e4e4e7';
+        ctx.fillText('Can you beat me? Scan to play!', canvas.width / 2, startY + (rowCount * 90) + 40);
+
+        // Generate QR Code
+        const qrCanvas = document.createElement('canvas');
+        new QRious({
+            element: qrCanvas,
+            value: shareUrl,
+            size: 260,
+            background: '#000000',
+            foreground: '#1DB954',
+            level: 'H'
         });
-    },
+
+        // Draw QR Code onto main canvas
+        ctx.drawImage(qrCanvas, (canvas.width / 2) - 130, startY + (rowCount * 90) + 100);
+
+        // Share or download logic
+        try {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const file = new File([blob], 'music-guess-result.png', { type: 'image/png' });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'Music Guess Result',
+                    text: `I scored ${score}/${maxScore} in Music Guess! Can you beat me?`,
+                    files: [file]
+                });
+                UI.showToast('Result shared!', 'success');
+            } else {
+                // Fallback to download
+                const link = document.createElement('a');
+                link.download = 'music-guess-result.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                UI.showToast('Image downloaded!', 'success');
+            }
+        } catch (error) {
+            console.error('Error sharing:', error);
+            // Fallback to clipboard if sharing fails (user canceled or error)
+            const textToShare = `🎵 Music Guess\nScore: ${score}/${maxScore}\n${emojiStr}\n\nCan you beat me? Play same tracks:\n${shareUrl}`;
+            navigator.clipboard.writeText(textToShare).then(() => {
+                UI.showToast('Result copied to clipboard instead!', 'success');
+            }).catch(e => console.error(e));
+        }
+        
+        // Update button state temporarily
+        const btn = document.getElementById('share-btn');
+        if (btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check"></i> Shared!';
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                if (window.lucide) lucide.createIcons();
+            }, 3000);
+        }
+    }
 
     // ─── Helpers ─────────────────────────────────────────────────────
 
