@@ -121,26 +121,38 @@ class AudioPlayer {
         }
 
         // Handle precise clip timing
-        if (state === YT.PlayerState.PLAYING && this._pendingClipDuration > 0) {
-            // Audio just started! Start the precise pause timer now.
-            const duration = this._pendingClipDuration;
-            this._pendingClipDuration = 0; // consume it
-            
-            // Clear the fallback timeout since it actually started playing
-            if (this._clipFallbackTimeout) {
-                clearTimeout(this._clipFallbackTimeout);
-                this._clipFallbackTimeout = null;
-            }
-            
-            this._clipTimeout = setTimeout(() => {
-                this._player.pauseVideo();
-                this._clipTimeout = null;
-                if (this._clipResolve) {
-                    const res = this._clipResolve;
-                    this._clipResolve = null;
-                    res();
+        if (this._pendingClipDuration !== undefined && this._pendingClipDuration > 0) {
+            if (state === YT.PlayerState.PLAYING) {
+                this._lastPlayStartTime = performance.now();
+                
+                // Clear the fallback timeout since it actually started playing
+                if (this._clipFallbackTimeout) {
+                    clearTimeout(this._clipFallbackTimeout);
+                    this._clipFallbackTimeout = null;
                 }
-            }, duration);
+                
+                this._clipTimeout = setTimeout(() => {
+                    this._player.pauseVideo();
+                    this._pendingClipDuration = 0;
+                    this._clipTimeout = null;
+                    if (this._clipResolve) {
+                        const res = this._clipResolve;
+                        this._clipResolve = null;
+                        this._clipReject = null;
+                        res();
+                    }
+                }, this._pendingClipDuration);
+            } else {
+                // Transitioned out of PLAYING (e.g., to BUFFERING or PAUSED)
+                if (this._clipTimeout) {
+                    clearTimeout(this._clipTimeout);
+                    this._clipTimeout = null;
+                    
+                    const elapsed = performance.now() - (this._lastPlayStartTime || performance.now());
+                    this._pendingClipDuration -= elapsed;
+                    if (this._pendingClipDuration < 0) this._pendingClipDuration = 0;
+                }
+            }
         }
     }
 
@@ -273,6 +285,18 @@ class AudioPlayer {
     }
 
     /**
+     * Start playing muted to unlock browser autoplay restrictions before an async delay.
+     */
+    preparePlayback() {
+        if (this._ready && this._player) {
+            try {
+                this._player.mute();
+                this._player.playVideo();
+            } catch (e) {}
+        }
+    }
+
+    /**
      * Play a clip of the currently loaded video for exactly `durationMs` milliseconds.
      * Seeks to true start, plays, then pauses after the duration.
      * @param {number} durationMs - Clip duration in milliseconds
@@ -295,6 +319,7 @@ class AudioPlayer {
             // Store the duration so _onStateChange can start the timer 
             // exactly when the audio starts (bypassing buffering delays).
             this._pendingClipDuration = durationMs;
+            this._lastPlayStartTime = 0;
 
             // Seek to true start of the music (skipping intros)
             let start = this._currentStartSeconds || 0;
@@ -320,6 +345,11 @@ class AudioPlayer {
             this._player.unMute();
             this._player.setVolume(100);
             this._player.playVideo();
+
+            // If it's already playing (e.g., instant seek), start the timer manually
+            if (this._player.getPlayerState() === YT.PlayerState.PLAYING) {
+                this._onStateChange({ data: YT.PlayerState.PLAYING });
+            }
             
             // Fallback timeout in case YouTube gets stuck buffering indefinitely
             this._clipFallbackTimeout = setTimeout(() => {

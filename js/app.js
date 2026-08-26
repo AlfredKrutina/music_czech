@@ -319,11 +319,70 @@ const App = {
                         list.appendChild(div);
                     });
                 }
+                
+                // Game opponents bar update
+                const opponentsBar = document.getElementById('mp-opponents-bar');
+                if (opponentsBar && window.MP && window.MP.peer && this.game && this.game.state === 'PLAYING') {
+                    opponentsBar.style.display = 'flex';
+                    opponentsBar.innerHTML = '';
+                    
+                    payload.players.forEach(p => {
+                        const div = document.createElement('div');
+                        div.style.padding = '0.5rem 1rem';
+                        div.style.background = 'rgba(255,255,255,0.05)';
+                        div.style.borderRadius = '20px';
+                        div.style.display = 'flex';
+                        div.style.flexDirection = 'column';
+                        div.style.alignItems = 'center';
+                        div.style.minWidth = '80px';
+                        div.style.border = p.id === window.MP.myId ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent';
+                        
+                        if (p.status === 'wrong') {
+                            div.style.borderColor = '#ef4444';
+                            div.style.background = 'rgba(239, 68, 68, 0.1)';
+                        } else if (p.status === 'skipping' || p.skipVote) {
+                            div.style.borderColor = '#eab308';
+                            div.style.background = 'rgba(234, 179, 8, 0.1)';
+                        } else if (p.status === 'winner') {
+                            div.style.borderColor = '#4ade80';
+                            div.style.background = 'rgba(74, 222, 128, 0.1)';
+                        }
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.style.fontSize = '0.8rem';
+                        nameSpan.style.fontWeight = 'bold';
+                        nameSpan.textContent = p.name;
+                        
+                        const statusSpan = document.createElement('span');
+                        statusSpan.style.fontSize = '0.7rem';
+                        statusSpan.style.color = '#a1a1aa';
+                        
+                        if (p.status === 'wrong') statusSpan.textContent = '❌ Missed';
+                        else if (p.status === 'skipping' || p.skipVote) statusSpan.textContent = '⏭️ Skip';
+                        else if (p.status === 'winner') statusSpan.textContent = '👑 Winner';
+                        else statusSpan.textContent = '🤔 Thinking';
+                        
+                        const scoreSpan = document.createElement('span');
+                        scoreSpan.style.fontSize = '0.7rem';
+                        scoreSpan.style.color = '#4ade80';
+                        scoreSpan.textContent = `${p.score} pts`;
+                        
+                        div.appendChild(nameSpan);
+                        div.appendChild(statusSpan);
+                        div.appendChild(scoreSpan);
+                        opponentsBar.appendChild(div);
+                    });
+                } else if (opponentsBar) {
+                    opponentsBar.style.display = 'none';
+                }
                 break;
             }
 
             case 'START_GAME':
-                this.game = new Game(payload.tracks, payload.totalRounds);
+                this.game = new Game();
+                this.game.tracks = payload.tracks;
+                this.game.gameTracks = payload.tracks;
+                this.game.state = 'PLAYING';
                 UI.showScreen('screen-game');
                 break;
                 
@@ -374,6 +433,9 @@ const App = {
                         // The player guessed correctly! They win the round!
                         const points = CONFIG.POINTS[this.game.getAttemptNumber()] || 1;
                         
+                        const peerToUpdate = window.MP.connections.get(peerId);
+                        if (peerToUpdate) peerToUpdate.status = 'winner';
+                        
                         // Notify everyone that someone won!
                         window.MP.broadcast('ROUND_RESULT', {
                             winnerId: peerId,
@@ -388,11 +450,16 @@ const App = {
                         // Also process it locally as the host to advance the game!
                         this._processGuessLocally(track, text, peerId);
                     } else {
-                        // Send failure message back to just that peer? Or broadcast a miss?
-                        // Simple approach: broadcast they missed, or just do nothing (peer will have no response).
-                        // Better: peer handles wrong guesses locally by evaluating before sending? No, because Host is source of truth.
-                        // Let's send them a WRONG_GUESS message
-                        window.MP.sendToPeer(peerId, 'WRONG_GUESS', {});
+                        const peerToUpdate = window.MP.connections.get(peerId);
+                        if (peerToUpdate) peerToUpdate.status = 'wrong';
+                        window.MP._broadcastPlayerList();
+                        
+                        // Send failure message back to just that peer
+                        if (peerId === window.MP.myId) {
+                            this._handleMultiplayerMessage({ type: 'WRONG_GUESS' });
+                        } else {
+                            window.MP.sendToPeer(peerId, 'WRONG_GUESS', {});
+                        }
                     }
                 }
                 break;
@@ -437,7 +504,11 @@ const App = {
             case 'SKIP_VOTE':
                 if (window.MP && window.MP.isHost) {
                     const peer = window.MP.connections.get(msg.from);
-                    if (peer) peer.skipVote = true;
+                    if (peer) {
+                        peer.skipVote = true;
+                        peer.status = 'skipping';
+                    }
+                    window.MP._broadcastPlayerList();
                     this._checkSkipVotes();
                 }
                 break;
@@ -445,6 +516,12 @@ const App = {
             case 'SKIP_SUCCESS':
                 if (!window.MP.isHost) {
                     this._processSkipLocally();
+                }
+                break;
+                
+            case 'PLAY_CLIP':
+                if (!window.MP.isHost) {
+                    this._playClip(payload.durationMs, payload.startMode);
                 }
                 break;
         }
@@ -826,6 +903,12 @@ const App = {
         }
         
         if (window.MP && window.MP.isHost) {
+            window.MP.connections.forEach(c => {
+                c.status = 'thinking';
+                c.skipVote = false;
+            });
+            window.MP._broadcastPlayerList();
+            
             window.MP.broadcast('SYNC_ROUND', {
                 roundNum: this.game.getCurrentRoundNumber(),
                 track: track,
@@ -858,22 +941,29 @@ const App = {
         }
     },
 
-    async _playClip() {
+    async _playClip(overrideDurationMs, overrideStartMode) {
         if (this._clipPlaying) return;
 
         this._clipPlaying = true;
         UI.setPlayButtonState('playing');
 
-        // MULTIPLAYER COUNTDOWN
-        if (window.MP && window.MP.peer) {
-             await UI.showCountdown(3);
-        }
-
-        const durationMs = this._mpOverrideDuration || this.game.getCurrentDurationMs();
+        const durationMs = overrideDurationMs || this._mpOverrideDuration || this.game.getCurrentDurationMs();
         this._mpOverrideDuration = null;
         
         const startPosSelect = document.getElementById('start-pos-select');
-        const startMode = startPosSelect ? startPosSelect.value : 'beginning';
+        const startMode = overrideStartMode || (startPosSelect ? startPosSelect.value : 'beginning');
+
+        // MULTIPLAYER COUNTDOWN
+        if (window.MP && window.MP.peer) {
+             if (window.MP.isHost && !overrideDurationMs) {
+                 window.MP.broadcast('PLAY_CLIP', {
+                     durationMs: durationMs,
+                     startMode: startMode
+                 });
+             }
+             this.player.preparePlayback(); // Unlock autoplay before await
+             await UI.showCountdown(3);
+        }
 
         try {
             await this.player.playClip(durationMs, startMode);
@@ -1088,19 +1178,11 @@ const App = {
             const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(true, lastResult.track, videoId, result.points);
             
-            this.player.playClip(15000).then(() => {
-                if (document.getElementById('screen-result').classList.contains('active')) {
-                    this._nextRound();
-                }
-            }).catch(() => {
-                if (document.getElementById('screen-result').classList.contains('active')) {
-                    this._nextRound();
-                }
-            });
+            this.player.playClip(15000).catch(() => {});
         } else if (result.canContinue) {
             SFX.playWrong();
             UI.showWrongGuess();
-            UI.showToast('Wrong answer! Clip extended.', 'error');
+            UI.showToast('Wrong answer!', 'error');
             UI.updateDurationLabel(result.duration);
             UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
             const input = document.getElementById('guess-input');
@@ -1130,15 +1212,7 @@ const App = {
             const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             
-            this.player.playClip(15000).then(() => {
-                if (document.getElementById('screen-result').classList.contains('active')) {
-                    this._nextRound();
-                }
-            }).catch(() => {
-                if (document.getElementById('screen-result').classList.contains('active')) {
-                    this._nextRound();
-                }
-            });
+            this.player.playClip(15000).catch(() => {});
         }
     },
 
@@ -1202,7 +1276,6 @@ const App = {
             SFX.playPop();
             UI.updateDurationLabel(result.duration);
             UI.updateSkipDots(this.game.getAttemptNumber(), this.game.getMaxAttempts());
-            UI.showToast(`Clip extended to ${this._formatDuration(result.duration)}`, 'info');
             
             const btn = document.getElementById('skip-btn');
             if (btn) {
@@ -1221,15 +1294,7 @@ const App = {
             const videoId = this._searchedVideos.get(this.game.currentRound);
             UI.showRoundResult(false, lastResult.track, videoId, 0);
             
-            this.player.playClip(15000).then(() => {
-                if (document.getElementById('screen-result').classList.contains('active')) {
-                    this._nextRound();
-                }
-            }).catch(() => {
-                if (document.getElementById('screen-result').classList.contains('active')) {
-                    this._nextRound();
-                }
-            });
+            this.player.playClip(15000).catch(() => {});
         }
     },
 

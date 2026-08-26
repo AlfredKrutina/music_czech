@@ -38,7 +38,8 @@ class MultiplayerNetwork {
                     conn: null,
                     name: playerName,
                     score: 0,
-                    skipVote: false
+                    skipVote: false,
+                    status: 'waiting'
                 });
                 this.emit('connected', { roomId: this.roomId, isHost: true });
                 resolve(this.roomId);
@@ -101,7 +102,8 @@ class MultiplayerNetwork {
                 conn: conn,
                 name: name,
                 score: 0,
-                skipVote: false
+                skipVote: false,
+                status: 'waiting'
             });
             this.emit('playerJoined', { id: peerId, name: name });
             this._broadcastPlayerList();
@@ -170,7 +172,7 @@ class MultiplayerNetwork {
         if (!this.isHost) return;
         const players = [];
         this.connections.forEach((data, id) => {
-            players.push({ id, name: data.name, score: data.score, skipVote: data.skipVote });
+            players.push({ id, name: data.name, score: data.score, skipVote: data.skipVote, status: data.status });
         });
         this.broadcast('UPDATE_PLAYERS', { players });
     }

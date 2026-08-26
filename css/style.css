@@ -2,12 +2,12 @@
  * style.css — Music Guess — Dark theme responsive stylesheet
  *
  * Color palette:
- *   Background:  #0a0a0f (deep dark)
- *   Surface:     #14141f (cards)
- *   Border:      #2a2a3a
- *   Text:        #e8e8f0 (primary), #8888a0 (secondary)
+ *   Background:  #000000 (deep pure black)
+ *   Surface:     #0a0a0a (panel background)
+ *   Border:      #1a1a1a (very subtle border)
+ *   Text:        #ffffff (primary), #a1a1aa (secondary)
  *   Accent 1:    #1DB954 (Spotify green)
- *   Accent 2:    #6366f1 (indigo)
+ *   Accent 2:    #1DB954 (Removed indigo)
  *   Error:       #ef4444
  *   Warning:     #f59e0b
  *   Success:     #22c55e
@@ -29,12 +29,16 @@ html {
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: #0a0a0f;
-    color: #e8e8f0;
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #000000;
+    color: #ffffff;
     min-height: 100vh;
     line-height: 1.6;
     overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6, .btn, .logo-title, .score-value {
+    font-family: 'Outfit', sans-serif;
 }
 
 .bg-layer {
@@ -49,12 +53,12 @@ body {
 }
 
 a {
-    color: #6366f1;
+    color: #1DB954;
     text-decoration: none;
     transition: color 0.2s;
 }
 a:hover {
-    color: #818cf8;
+    color: #1ed760;
     text-decoration: underline;
 }
 
@@ -86,53 +90,63 @@ a:hover {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   CARDS
+   PANELS & SECTIONS
    ═══════════════════════════════════════════════════════════════════ */
-.card {
-    background: #14141f;
-    border: 1px solid #2a2a3a;
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+.main-panel {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
     width: 100%;
-    transition: border-color 0.2s;
-}
-.card:hover {
-    border-color: #3a3a5a;
+    overflow: hidden;
+    margin-bottom: 1rem;
 }
 
-.card-title {
-    font-size: 1.1rem;
+.panel-section {
+    padding: 2rem;
+    border-bottom: 1px solid #1a1a1a;
+    transition: background 0.2s;
+}
+.panel-section:last-child {
+    border-bottom: none;
+}
+.panel-section:hover {
+    background: #0d0d0d;
+}
+
+.panel-title {
+    font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    letter-spacing: -0.02em;
 }
 
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.3rem;
-    height: 1.3rem;
-    color: #6366f1;
-    flex-shrink: 0;
-}
-.card-icon svg {
-    width: 100%;
-    height: 100%;
-    stroke-width: 2;
+.accent-text {
+    color: #1DB954;
 }
 
 .card-desc {
-    font-size: 0.875rem;
-    color: #8888a0;
-    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    color: #a1a1aa;
+    margin-bottom: 1.25rem;
     line-height: 1.5;
 }
 .card-desc small {
     opacity: 0.7;
+}
+
+/* Fallback for remaining .card elements */
+.card {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -142,29 +156,28 @@ a:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.7rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 12px;
-    font-size: 0.95rem;
+    border-radius: 6px;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
     min-width: 80px;
+    letter-spacing: -0.01em;
 }
 .btn:disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
-    color: white;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    background: #1DB954;
+    color: #000000;
 }
 .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #818cf8, #6366f1);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    background: #1ed760;
     transform: translateY(-1px);
 }
 .btn-primary:active:not(:disabled) {
@@ -172,13 +185,13 @@ a:hover {
 }
 
 .btn-secondary {
-    background: #2a2a3a;
-    color: #e8e8f0;
-    border: 1px solid #3a3a5a;
+    background: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid #2a2a2a;
 }
 .btn-secondary:hover:not(:disabled) {
-    background: #3a3a4a;
-    border-color: #4a4a6a;
+    background: #2a2a2a;
+    border-color: #3a3a3a;
 }
 
 .btn-lg {
@@ -204,19 +217,19 @@ a:hover {
 
 input[type="text"],
 input[type="url"] {
-    background: #0a0a0f;
-    border: 1px solid #2a2a3a;
-    border-radius: 12px;
+    background: #000000;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
-    color: #e8e8f0;
+    color: #ffffff;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     width: 100%;
 }
 input:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    border-color: #1DB954;
+    box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.2);
 }
 input::placeholder {
     color: #555570;
@@ -227,12 +240,12 @@ input:disabled {
 }
 
 .select-input {
-    background: #0a0a0f;
-    border: 1px solid #2a2a3a;
-    border-radius: 12px;
+    background: #000000;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
-    color: #e8e8f0;
+    color: #ffffff;
     outline: none;
     cursor: pointer;
     appearance: auto;
@@ -253,9 +266,9 @@ input:disabled {
 input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    background: #0a0a0f;
-    border: 2px solid #3a3a5a;
-    border-radius: 6px;
+    background: #000000;
+    border: 2px solid #2a2a2a;
+    border-radius: 4px;
     width: 22px;
     height: 22px;
     cursor: pointer;
@@ -267,9 +280,9 @@ input[type="checkbox"] {
 }
 
 input[type="checkbox"]:checked {
-    background: #6366f1;
-    border-color: #6366f1;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    background: #1DB954;
+    border-color: #1DB954;
+    box-shadow: none;
 }
 
 input[type="checkbox"]:checked::after {
@@ -371,11 +384,11 @@ input[type="checkbox"]:focus-visible {
 }
 
 .mode-chip:hover {
-    background: rgba(99, 102, 241, 0.15);
-    border-color: #6366f1;
+    background: rgba(29, 185, 84, 0.15);
+    border-color: #1DB954;
     color: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    box-shadow: none;
 }
 
 .mode-chip:active {
@@ -405,17 +418,16 @@ input[type="checkbox"]:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(29,185,84,0.15));
-    border-radius: 24px;
-    border: 1px solid rgba(99,102,241,0.3);
-    box-shadow: 0 8px 32px rgba(99,102,241,0.2);
-    animation: bounce 2s ease-in-out infinite;
+    background: #000000;
+    border-radius: 12px;
+    border: 2px solid #1DB954;
+    box-shadow: 4px 4px 0px #1DB954;
 }
 .logo-icon svg {
     width: 36px;
     height: 36px;
-    color: #818cf8;
-    stroke-width: 1.5;
+    color: #1DB954;
+    stroke-width: 2;
 }
 
 @keyframes bounce {
@@ -426,10 +438,7 @@ input[type="checkbox"]:focus-visible {
 .logo-title {
     font-size: 2.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #6366f1, #1DB954);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ffffff;
     letter-spacing: -0.02em;
 }
 
@@ -459,8 +468,8 @@ input[type="checkbox"]:focus-visible {
 .loading-spinner {
     width: 60px;
     height: 60px;
-    border: 4px solid #2a2a3a;
-    border-top-color: #6366f1;
+    border: 4px solid #1a1a1a;
+    border-top-color: #1DB954;
     border-radius: 50%;
     animation: spin 0.9s linear infinite;
     margin-bottom: 1.5rem;
@@ -1244,23 +1253,45 @@ input[type="checkbox"]:focus-visible {
 /* ═══════════════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .container {
+        padding: 1.2rem;
+    }
+    
+    .setup-tabs {
+        flex-direction: column !important;
+    }
+    
+    .logo-title {
+        font-size: 2.2rem;
+    }
+
+    .play-button {
+        width: 110px;
+        height: 110px;
+        font-size: 2.2rem;
+    }
+}
+
 @media (max-width: 480px) {
     .container {
         padding: 1rem;
     }
 
     .logo-title {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
     .logo-icon {
-        font-size: 3rem;
+        font-size: 2.5rem;
+        width: 60px;
+        height: 60px;
     }
 
     .play-button {
-        width: 100px;
-        height: 100px;
-        font-size: 2rem;
+        width: 90px;
+        height: 90px;
+        font-size: 1.8rem;
     }
 
     .card {
@@ -1272,9 +1303,22 @@ input[type="checkbox"]:focus-visible {
         flex-direction: column;
     }
 
+    .options-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.8rem;
+    }
+    
+    .select-input, .options-row label {
+        width: 100%;
+    }
+
     .game-header {
         font-size: 0.85rem;
         padding: 0.6rem 0.8rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
     }
 
     .final-score-number {
@@ -1292,6 +1336,10 @@ input[type="checkbox"]:focus-visible {
         width: 100%;
     }
 
+    .platform-links {
+        flex-direction: column;
+    }
+
     #toast-container {
         top: auto;
         bottom: 1rem;
@@ -1300,6 +1348,24 @@ input[type="checkbox"]:focus-visible {
     }
     .toast {
         max-width: 100%;
+    }
+    
+    .result-icon {
+        width: 100px;
+        height: 100px;
+        font-size: 4rem;
+    }
+    
+    .result-heading {
+        font-size: 1.5rem;
+    }
+    
+    .result-track-info {
+        padding: 1rem;
+    }
+    
+    .result-track-name {
+        font-size: 1.1rem;
     }
 }
 

@@ -6,13 +6,13 @@
     <title>Music Guess — Song Guessing Game</title>
     <meta name="description" content="Guess the song from a tiny audio clip! Heardle-style music quiz using your Spotify or YouTube Music playlists.">
 
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Outfit & Space Grotesk -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%231DB954'/></svg>">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
@@ -38,16 +38,16 @@
                 <p class="logo-subtitle">Guess the song from a tiny clip!</p>
             </header>
 
-            <div class="setup-tabs" style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem;">
-                <button id="tab-play" class="btn btn-primary" style="flex: 1;">Singleplayer</button>
-                <button id="tab-multiplayer" class="btn btn-secondary" style="flex: 1;"><i data-lucide="users"></i> Multiplayer</button>
-                <button id="tab-leaderboards" class="btn btn-secondary" style="flex: 1;"><i data-lucide="trophy"></i> Leaderboards</button>
+            <div class="setup-tabs" style="display: flex; gap: 0; justify-content: center; margin-bottom: 2rem; background: #111; border-radius: 8px; border: 1px solid #333; overflow: hidden; padding: 0.25rem;">
+                <button id="tab-play" class="btn btn-primary" style="flex: 1; border-radius: 6px; box-shadow: none;">Singleplayer</button>
+                <button id="tab-multiplayer" class="btn btn-secondary" style="flex: 1; border-radius: 6px; border: none; background: transparent;">Multiplayer</button>
+                <button id="tab-leaderboards" class="btn btn-secondary" style="flex: 1; border-radius: 6px; border: none; background: transparent;">Leaderboards</button>
             </div>
 
-            <div id="setup-content-play">
-            <section class="card" id="daily-challenge-section" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%); border-color: rgba(99, 102, 241, 0.3);">
-                <h3 class="card-title" style="color: #818cf8;">
-                    <span class="card-icon"><i data-lucide="calendar"></i></span> Daily Challenge
+            <div class="main-panel">
+            <section class="panel-section" id="daily-challenge-section">
+                <h3 class="panel-title accent-text">
+                    Daily Challenge
                 </h3>
                 <p class="card-desc">Everyone plays the same 10 tracks today. Can you beat the world?</p>
                 <button id="daily-challenge-btn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;">
@@ -56,9 +56,9 @@
             </section>
 
             <!-- Infinite Search -->
-            <section class="card" id="infinite-search-section">
-                <h3 class="card-title">
-                    <span class="card-icon"><i data-lucide="search"></i></span> Any Artist or Genre
+            <section class="panel-section" id="infinite-search-section">
+                <h3 class="panel-title">
+                    Any Artist or Genre
                 </h3>
                 <p class="card-desc">Type any artist, band, or genre in the world</p>
                 <div class="input-group" style="margin-bottom: 0.75rem;">
@@ -79,9 +79,9 @@
             </section>
 
             <!-- Playlist URL -->
-            <section class="card">
-                <h3 class="card-title">
-                    <span class="card-icon"><i data-lucide="list-music"></i></span> Load Custom Playlist
+            <section class="panel-section">
+                <h3 class="panel-title">
+                    Load Custom Playlist
                 </h3>
                 <p class="card-desc">Paste a Spotify or YouTube Music playlist URL</p>
                 <div class="input-group">
@@ -96,9 +96,9 @@
             </section>
 
             <!-- Game Options -->
-            <section class="card">
-                <h3 class="card-title">
-                    <span class="card-icon"><i data-lucide="sliders-horizontal"></i></span> Game Options
+            <section class="panel-section">
+                <h3 class="panel-title">
+                    Game Options
                 </h3>
                 <div class="options-row">
                     <label for="rounds-select">Number of rounds:</label>
@@ -136,12 +136,15 @@
                     </label>
                 </div>
             </section>
+            </section>
+            </div>
             </div>
 
             <div id="setup-content-multiplayer" style="display: none;">
-                <section class="card">
-                    <h3 class="card-title">
-                        <span class="card-icon"><i data-lucide="users"></i></span> Multiplayer
+                <div class="main-panel">
+                <section class="panel-section">
+                    <h3 class="panel-title">
+                        Multiplayer
                     </h3>
                     <p class="card-desc">Play in real-time with your friends! (No backend required)</p>
                     
@@ -204,12 +207,15 @@
                         <button id="mp-leave-btn" class="btn btn-secondary" style="width: 100%;">Leave Room</button>
                     </div>
                 </section>
+                </section>
+                </div>
             </div>
 
             <div id="setup-content-leaderboards" style="display: none;">
-                <section class="card">
-                    <h3 class="card-title">
-                        <span class="card-icon"><i data-lucide="trophy"></i></span> Global Leaderboards
+                <div class="main-panel">
+                <section class="panel-section">
+                    <h3 class="panel-title">
+                        Global Leaderboards
                     </h3>
                     <p class="card-desc">Select a leaderboard to view the top scores.</p>
                     
@@ -222,7 +228,9 @@
                     <div id="home-leaderboard-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto;">
                         <div style="text-align: center; color: #9ca3af; padding: 1rem;">Select a leaderboard...</div>
                     </div>
+                    </div>
                 </section>
+                </div>
             </div>
 
             <footer class="setup-footer">
@@ -253,7 +261,7 @@
     <div id="screen-game" class="screen" aria-hidden="true">
         <div class="container game-container">
             <!-- Header bar -->
-            <div class="game-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div class="game-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <button id="quit-game-btn" class="btn btn-secondary" style="padding: 0.4rem 0.6rem; border-radius: 8px;" title="Quit to Menu">
                     <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
                 </button>
@@ -263,6 +271,11 @@
                 <div class="score-info" style="font-weight: 700;">
                     Score: <span id="current-score" class="score-value" style="color: #4ade80;">0</span>
                 </div>
+            </div>
+
+            <!-- Multiplayer Opponents Bar -->
+            <div id="mp-opponents-bar" style="display: none; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                <!-- Generated by JS -->
             </div>
 
             <!-- Play button area -->
